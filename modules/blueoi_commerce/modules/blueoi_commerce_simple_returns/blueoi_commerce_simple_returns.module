@@ -1,0 +1,86 @@
+<?php
+
+/**
+ * Implements hook_commerce_line_item_type_info().
+ */
+function blueoi_commerce_simple_returns_commerce_line_item_type_info() {
+  $type = array();
+  $type['blueoi_return'] = array(
+    'type' => 'blueoi_return',
+    'name' => t('Return'),
+    'product' => TRUE,
+    'description' => t('Provides a line item for managing returns.'),
+    'callbacks' => array(
+      'configuration' => 'blueoi_commerce_simple_returns_blueoi_return_line_item_configure',
+      'title' => 'blueoi_commerce_simple_returns_blueoi_return_line_item_title',
+      'add_form' => 'blueoi_commerce_simple_returns_blueoi_return_line_item_add_form',
+      'add_form_submit' => 'blueoi_commerce_simple_returns_blueoi_return_line_item_add_form_submit',
+    ),
+  );
+  return $type;
+}
+
+/**
+ * Line item type configuration for return line items.
+ */
+function blueoi_commerce_simple_returns_blueoi_return_line_item_configure($line_item_type) {
+  // Add product fields.
+  commerce_product_line_item_configuration($line_item_type);
+  // Add pricing fields.
+  commerce_line_item_configure_line_item_type($line_item_type);
+}
+
+/**
+ * Line item title callback for return line items.
+ */
+function blueoi_commerce_simple_returns_blueoi_return_line_item_title($line_item) {
+  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+  return $line_item_wrapper->commerce_product->title->value() . ' [' . t('Return') . ']';
+}
+
+/**
+ * Line item add callback for return line items.
+ */
+function blueoi_commerce_simple_returns_blueoi_return_line_item_add_form($element, &$form_state) {
+  $form = array();
+  $order = $form_state['order'];
+  $line_item = commerce_line_item_new('blueoi_return', $order->order_id);
+  field_attach_form('commerce_line_item', $line_item, $form, $form_state);
+  $form['commerce_display_path']['#access'] = FALSE;
+  return $form;
+}
+
+/**
+ * Line item add submit callback for return line items.
+ */
+function blueoi_commerce_simple_returns_blueoi_return_line_item_add_form_submit($line_item, $element, &$form_state, $form) {
+  field_attach_submit('commerce_line_item', $line_item, $form, $form_state);
+}
+
+/**
+ * Impelements hook_entity_presave().
+ */
+function blueoi_commerce_simple_returns_entity_presave($entity, $type) {
+  // Invert positive quantity values for return line items.
+  if ($type == 'commerce_line_item' && $entity->type == 'blueoi_return' && $entity->quantity > 0) {
+    $entity->quantity = $entity->quantity * -1;
+  }
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ */
+function blueoi_commerce_simple_returns_field_widget_form_alter(&$element, &$form_state, $context) {
+  // Update the line item field widget for return line items to invert their
+  // quantity (prevents validation error) and add a negative symbol for user
+  // experience.
+  if ($element['#field_name'] == 'commerce_line_items' && $element['#theme'] == 'commerce_line_item_manager') {
+    foreach ($element['line_items'] as &$line_item_element) {
+      if ($line_item_element['line_item']['#value']->type == 'blueoi_return') {
+        $quantity = &$line_item_element['quantity']['#default_value'];
+        $quantity = $quantity * -1;
+        $line_item_element['quantity']['#prefix'] = '<div style="float:left;">-&nbsp;</div>';
+      }
+    }
+  }
+}
