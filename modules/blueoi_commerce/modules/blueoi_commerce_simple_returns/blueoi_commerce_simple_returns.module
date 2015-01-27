@@ -91,7 +91,7 @@ function blueoi_commerce_simple_returns_field_widget_form_alter(&$element, &$for
   // Update the line item field widget for return line items to invert their
   // quantity (prevents validation error) and add a negative symbol for user
   // experience.
-  if ($element['#field_name'] == 'commerce_line_items' && $element['#theme'] == 'commerce_line_item_manager') {
+  if (!empty($element['#field_name']) && $element['#field_name'] == 'commerce_line_items' && !empty($element['#theme']) && $element['#theme'] == 'commerce_line_item_manager') {
     foreach ($element['line_items'] as &$line_item_element) {
       if ($line_item_element['line_item']['#value']->type == 'blueoi_return') {
         $quantity = &$line_item_element['quantity']['#default_value'];
