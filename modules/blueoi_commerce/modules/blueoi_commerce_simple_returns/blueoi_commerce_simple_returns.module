@@ -62,8 +62,25 @@ function blueoi_commerce_simple_returns_blueoi_return_line_item_add_form_submit(
  */
 function blueoi_commerce_simple_returns_entity_presave($entity, $type) {
   // Invert positive quantity values for return line items.
-  if ($type == 'commerce_line_item' && $entity->type == 'blueoi_return' && $entity->quantity > 0) {
-    $entity->quantity = $entity->quantity * -1;
+  if ($type == 'commerce_line_item' && $entity->type == 'blueoi_return') {
+    $entity_wrapper = entity_metadata_wrapper('commerce_line_item', $entity);
+
+    if ($entity->quantity > 0) {
+      $entity->quantity = $entity->quantity * -1;
+    }
+
+    $commerce_unit_price = $entity_wrapper->commerce_unit_price->value();
+
+    // Invert any unit price that's positive.
+    if ($commerce_unit_price['amount'] > 0) {
+      $commerce_unit_price['amount'] = $commerce_unit_price['amount'] * -1;
+    }
+
+    // Update the price and price component for the unit price.
+    $component_price = array('amount' => $commerce_unit_price['amount'], 'currency_code' => $commerce_unit_price['currency_code']);
+    $commerce_unit_price['data'] = commerce_price_component_delete($commerce_unit_price, 'base_price');
+    $commerce_unit_price['data'] = commerce_price_component_add($commerce_unit_price, 'base_price', $component_price, TRUE, FALSE);
+    $entity_wrapper->commerce_unit_price->set($commerce_unit_price);
   }
 }
 
