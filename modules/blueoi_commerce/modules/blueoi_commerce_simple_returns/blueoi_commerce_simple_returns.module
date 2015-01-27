@@ -44,9 +44,12 @@ function blueoi_commerce_simple_returns_blueoi_return_line_item_title($line_item
 function blueoi_commerce_simple_returns_blueoi_return_line_item_add_form($element, &$form_state) {
   $form = array();
   $order = $form_state['order'];
+  $form['commerce_line_item'] = array(
+    '#type' => 'contianer'
+  );
   $line_item = commerce_line_item_new('blueoi_return', $order->order_id);
-  field_attach_form('commerce_line_item', $line_item, $form, $form_state);
-  $form['commerce_display_path']['#access'] = FALSE;
+  field_attach_form('commerce_line_item', $line_item, $form['commerce_line_item'], $form_state);
+  $form['commerce_line_item']['commerce_display_path']['#access'] = FALSE;
   return $form;
 }
 
