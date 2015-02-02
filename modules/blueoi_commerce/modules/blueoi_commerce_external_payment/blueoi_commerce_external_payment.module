@@ -14,7 +14,9 @@ function blueoi_commerce_external_payment_commerce_payment_method_info() {
   $payment_methods['blueoi_commerce_external_payment'] = array(
     'title' => t('External payment'),
     'description' => t('Provides a way to log external payments.'),
-    'active' => TRUE,
+    'terminal' => TRUE,
+    'checkout' => FALSE,
+    'active' => FALSE,
   );
 
   return $payment_methods;
