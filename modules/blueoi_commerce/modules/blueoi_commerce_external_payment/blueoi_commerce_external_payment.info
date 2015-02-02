@@ -1,0 +1,3 @@
+name = BlueOI External Payment
+description = Provides the ability to log external payment transactions
+core = 7.x
