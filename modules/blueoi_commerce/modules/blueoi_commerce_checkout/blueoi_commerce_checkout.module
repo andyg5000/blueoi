@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * @file
+ * Provides improvments to commerce checkout.
+ */
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * If commerce_checkout_complete_registration is enabled, this alter will hide
+ * form fields that don't apply to the user based on their account.
+ *
+ * New users will see the set password form.
+ *
+ * Logged in users will see the default commerce checkout complete message.
+ *
+ * Returning unauthenticated users will see links to login or reset their pass.
+ */
+function blueoi_commerce_checkout_form_commerce_checkout_form_complete_alter(&$form, &$form_state) {
+  if (!empty($form['commerce_checkout_complete_registration']['pass'])) {
+    // Hide the generic message.
+    $form['checkout_completion_message']['#acess'] = FALSE;
+
+    // Update the registraion form so that it's displayed logically.
+    $form['commerce_checkout_complete_registration']['#title'] = t('Thank you for your order!');
+    $form['commerce_checkout_complete_registration']['confirmation_text']['#weight'] = 0;
+    $form['commerce_checkout_complete_registration']['pass']['#weight'] = 2;
+    $form['commerce_checkout_complete_registration']['submit']['#weight'] = 3;
+    $form['commerce_checkout_complete_registration']['submit']['#value'] = t('Set my password');
+    $form['commerce_checkout_complete_registration']['message'] = array(
+      '#markup' => '<div class="checkout-new-account"><p><strong>We have created an account for you so you can view and track your orders. Use the form below to set a password on your account. In the future, you can use your email address and this password to login.</strong></p></div>',
+      '#weight' => 1,
+    );
+  }
+  else {
+    global $user;
+    if ($user->uid == 0) {
+      // Inform existing users of a conflict and give them links to access
+      // their account.
+      $form['message'] = array(
+      '#markup' => '<div class="checkout-account-exists"><p><strong>' . t('You have completed checkout with an email address that already exists in our store.') . '</strong></p><p>' . t('!login or !reset to check your order status and order history.', array('!login' => l(t('Login to your account'), 'user/login'), '!reset' => l(t('reset your password'), 'user/password'))) . '</p></div>',
+      '#weight' => 1,
+    );
+    }
+  }
+}

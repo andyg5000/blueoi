@@ -1,0 +1,4 @@
+name = BlueOI Checkout
+description = Provides improvements to commerce checkout
+core = 7.x
+package = Blue Oak Interactive
