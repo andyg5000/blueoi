@@ -20,7 +20,7 @@
 function blueoi_commerce_checkout_form_commerce_checkout_form_complete_alter(&$form, &$form_state) {
   if (!empty($form['commerce_checkout_complete_registration']['pass'])) {
     // Hide the generic message.
-    $form['checkout_completion_message']['#acess'] = FALSE;
+    $form['checkout_completion_message']['#access'] = FALSE;
 
     // Update the registraion form so that it's displayed logically.
     $form['commerce_checkout_complete_registration']['#title'] = t('Thank you for your order!');
