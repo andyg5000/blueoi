@@ -1,0 +1,4 @@
+name = BlueOI Schema.org
+description = Provides JSON-LD schema for commerce products
+core = 7.x
+package = BlueOI

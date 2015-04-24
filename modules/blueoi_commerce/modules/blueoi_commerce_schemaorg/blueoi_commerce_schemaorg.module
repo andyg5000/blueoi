@@ -1,0 +1,267 @@
+<?php
+
+/**
+ * @file
+ * Provides JSON-LD schema for commerce products.
+ */
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function blueoi_commerce_schemaorg_entity_info_alter(&$entity_info) {
+  $entity_info['node']['view modes']['default'] = array(
+    'label' => t('Schema.org JSON-LD'),
+    'custom settings' => FALSE,
+  );
+}
+
+/**
+ * Implements hook_node_view().
+ */
+function blueoi_commerce_schemaorg_node_view($node, $view_mode, $langcode) {
+  // Add the schema for supported node types to the page header.
+  if ($view_mode == 'full' && in_array($node->type, blueoi_commerce_schemaorg_node_types())) {
+    $schema = blueoi_commerce_schemaorg_get_node_schema($node, $node->type);
+    blueoi_commerce_schemaorg_set_header($schema);
+  }
+}
+
+/**
+ * Implements hook_ctools_render_alter().
+ *
+ * Ctools pages do not execute node_view so we use their render alter hook.
+ */
+function blueoi_commerce_schemaorg_ctools_render_alter(&$info, &$pages, &$context) {
+  if (!empty($context['contexts']['argument_entity_id:node_1'])) {
+    $node = $context['contexts']['argument_entity_id:node_1']->data;
+    $schema = blueoi_commerce_schemaorg_get_node_schema($node, $node->type);
+    blueoi_commerce_schemaorg_set_header($schema);
+  }
+}
+
+/**
+ * Adds the schema.org json-ld to the page header.
+ */
+function blueoi_commerce_schemaorg_set_header($schema) {
+  $tag = &drupal_static(__FUNCTION__);
+
+  // Check the drupal static value to make sure this only happens once per page
+  // load.
+  if (empty($tag)) {
+    $tag = array(
+      '#type' => 'markup',
+      '#markup' => '<script type="application/ld+json">' . json_encode($schema) . '</script>',
+    );
+    // Add the JSON-ld to the head tag.
+    drupal_add_html_head($tag, 'blueoi_commerce_schemaorg');
+  }
+}
+
+/**
+ * Build the node schema.
+ */
+function blueoi_commerce_schemaorg_get_node_schema($node, $bundle, $args = array()) {
+  $schema = (array) blueoi_commerce_schemaorg_get_node_product_schema($node, $args);
+
+  $context = array(
+    'node' => $node,
+    'bundle' => $bundle,
+    'args' => $args,
+  );
+
+  // Allow other modules to alter the schema as needed.
+  drupal_alter('blueoi_commerce_schemaorg_get_node_schema', $schema, $context);
+
+  return $schema;
+}
+
+/**
+ * Get the schema.org schema for a product display.
+ */
+function blueoi_commerce_schemaorg_get_node_product_schema($node, $args = array()) {
+  if (is_int($node)) {
+    $node = node_load($node);
+  }
+
+  if (empty($node->nid)) {
+    return FALSE;
+  }
+
+  $schema = blueoi_commerce_schemaorg_get_default_schema('Product');
+
+  $node_wrapper = entity_metadata_wrapper('node', $node);
+
+  $description = !empty($node->body) ? $node_wrapper->body->value->value() : NULL;
+
+  $node_schema = array(
+    'description' => blueoi_commerce_schemaorg_clean($description),
+    'url' => url(drupal_get_path_alias('node/' . $node->nid), array('absolute' => TRUE)),
+  );
+
+  // Set the default product if it was passed in as an argument.
+  $product = !empty($args['product']) ? $args['product'] : NULL;
+
+  // If no product was passed in, attempt to grab the first product reference.
+  if (empty($product) && !empty($node->field_products)) {
+    $product = array_shift($node_wrapper->field_products->value());
+  }
+
+  // Build the product schema.
+  $product_schema = (array) blueoi_commerce_schemaorg_get_product_schema($product);
+
+  // Build the comment/review schema.
+  $comment_schema = (array) blueoi_commerce_schemaorg_get_review_schema($node);
+
+  // Append the aggregate rating if there are comment/reviews on the node.
+  if (!empty($comment_schema['review'])) {
+    $node_schema += (array) blueoi_commerce_schemaorg_aggregate_rating_schema($comment_schema);
+  }
+
+  // Return the full product display schema.
+  return array_merge($schema, $node_schema, $product_schema, $comment_schema);
+}
+
+/**
+ * Get the schema.org schema for a product entity.
+ */
+function blueoi_commerce_schemaorg_get_product_schema($product) {
+  if (is_int($product)) {
+    $product = commerce_product_load($product);
+  }
+
+  if (empty($product->product_id)) {
+    return FALSE;
+  }
+
+  $product_wrapper = entity_metadata_wrapper('commerce_product', $product);
+
+  $price = commerce_product_calculate_sell_price($product);
+
+  if (module_exists('commerce_stock')) {
+    $sold_out = FALSE;
+    $message = '';
+    commerce_stock_check_product_checkout_rule($product, 1, $sold_out, $message);
+  }
+
+  $schema = array(
+    'manufacturer' => variable_get('site_name'),
+    'brand' => variable_get('site_name'),
+    'logo' => blueoi_commerce_schemaorg_get_logo(),
+    'model' => $product->title,
+    'mpn' => $product->product_id,
+    'productID' => $product->sku,
+    'sku' => $product->sku,
+    'name' => $product->title,
+    'offers' => array(
+      '@type' => 'Offer',
+      'availability' => !empty($sold_out) ? 'http://schema.org/SoldOut' :  'http://schema.org/InStock',
+      'price' => commerce_currency_format($price['amount'], $price['currency_code']),
+    ),
+  );
+
+  // Grab the 1st photo on the product entity.
+  if (!empty($product->field_image)) {
+    $image = array_shift($product_wrapper->field_image->value());
+    $schema['image'] = file_create_url($image['uri']);
+  }
+
+  return $schema;
+}
+
+/**
+ * Get the schema.org schema for a comment.
+ */
+function blueoi_commerce_schemaorg_get_review_schema($node) {
+  // Make sure comment module is installed for reviews.
+  if (!module_exists('comment')) {
+    return array();
+  }
+
+  $schema = array();
+  $comments = (array) comment_load_multiple(array(), array('nid' => $node->nid));
+  foreach ($comments as $comment) {
+    $comment_wrapper = entity_metadata_wrapper('comment', $comment);
+
+    $description = !empty($comment->comment_body) ? $comment_wrapper->comment_body->value->value() : '';
+    $name = !empty($comment->field_comment_display_name) ? $comment_wrapper->field_comment_display_name->value() : '';
+    $rating = !empty($comment->field_product_rating) ? $comment_wrapper->field_product_rating->value() : '';
+
+    $schema[$comment->cid] = array(
+      '@type' => 'Review',
+      'author' => '',
+      'datePublished' => format_date($comment->created, 'custom', 'Y-m-d'),
+      'description' => blueoi_commerce_schemaorg_clean($description),
+      'name' => blueoi_commerce_schemaorg_clean($name),
+    );
+
+    // Add the rating if it was provided.
+    if (!empty($rating)) {
+      $schema[$comment->cid]['reviewRating'] = array(
+        '@type' => 'Rating',
+        'bestRating' => 5,
+        'ratingValue' => '"' . $rating / 100 * 5 . '"',
+        'worstRating' => 1,
+      );
+    }
+  }
+  return array('review' => array_values($schema));
+}
+
+/**
+ * Get the schema.org schema for a review rating.
+ */
+function blueoi_commerce_schemaorg_aggregate_rating_schema($comment_schema) {
+  $schema = array();
+  $count = 0;
+  $stars = 0;
+  foreach ($comment_schema['review'] as $review) {
+    if (!empty($review['reviewRating'])) {
+      $stars += $review['reviewRating']['ratingValue'];
+      $count++;
+    }
+  }
+
+  if (!empty($count)) {
+    $schema['aggregateRating'] = array(
+      '@type' => 'AggregateRating',
+      'ratingValue' => '"' . round($stars / $count) . '"',
+      'reviewCount' => count($comment_schema['review']),
+    );
+  }
+
+  return $schema;
+}
+
+/**
+ * Return the base structure of all schema.org schemas.
+ */
+function blueoi_commerce_schemaorg_get_default_schema($type) {
+  $schema = array(
+    '@context' => 'http://schema.org',
+    '@type' => blueoi_commerce_schemaorg_clean($type),
+  );
+  return $schema;
+}
+
+/**
+ * Internal function to clean strings before adding them to schema.
+ */
+function blueoi_commerce_schemaorg_clean($string) {
+  $string = strip_tags($string);
+  $string = check_plain($string);
+  $string = str_replace("\n", ' ', $string);
+  return $string;
+}
+
+/**
+ * Internal function to return the logo for a manufacturer.
+ */
+function blueoi_commerce_schemaorg_get_logo() {
+  global $theme;
+  return theme_get_setting('logo', $theme);
+}
+
+
+function blueoi_commerce_schemaorg_node_types(){
+  return variable_get('blueoi_commerce_schemaorg_node_types', array());
+}
