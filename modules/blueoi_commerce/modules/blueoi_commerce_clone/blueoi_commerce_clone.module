@@ -208,6 +208,7 @@ function blueoi_commerce_clone_node_form_submit(&$form, &$form_state) {
  * Helper function to prepare a new cloned node object.
  */
 function blueoi_commerce_clone_node_prepare($original_node) {
+  global $user;
   $node = clone $original_node;
 
   $node->nid = NULL;
@@ -221,8 +222,8 @@ function blueoi_commerce_clone_node_prepare($original_node) {
 
   // Anyonmymous users don't have a name.
   // @see: drupal_anonymous_user().
-  $node->name = isset($account->name) ? $account->name : NULL;
-  $node->uid = $account->uid;
+  $node->name = isset($user->name) ? $user->name : NULL;
+  $node->uid = $user->uid;
 
   $node->created = NULL;
   $node->path = NULL;
