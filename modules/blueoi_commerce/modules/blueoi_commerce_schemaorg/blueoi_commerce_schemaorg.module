@@ -103,7 +103,8 @@ function blueoi_commerce_schemaorg_get_node_product_schema($node, $args = array(
 
   // If no product was passed in, attempt to grab the first product reference.
   if (empty($product) && !empty($node->field_products)) {
-    $product = array_shift($node_wrapper->field_products->value());
+    $products = $node_wrapper->field_products->value();
+    $product = array_shift($products);
   }
 
   // Build the product schema.
