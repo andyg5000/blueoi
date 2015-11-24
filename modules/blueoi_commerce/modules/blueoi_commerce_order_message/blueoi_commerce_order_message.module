@@ -167,12 +167,12 @@ function blueoi_commerce_order_message_default_message_type() {
         {
           "value" : "[site:name] Order update for #[message:blueoi-message-order-ref:order-id]",
           "format" : "plain_text",
-          "safe_value" : "\u003Cp\u003E[site:name] Order update for #[message:blueoi-message-order-ref:order-id]\u003C\/p\u003E\n"
+          "safe_value" : "[site:name] Order update for #[message:blueoi-message-order-ref:order-id]"
         },
         {
-          "value" : "\u003Cp\u003E[message:blueoi-message-log]\u003C\/p\u003E",
+          "value" : "[message:blueoi-message-log]",
           "format" : "plain_text",
-          "safe_value" : "\u003Cp\u003E\u0026lt;p\u0026gt;[message:blueoi-message-log]\u0026lt;\/p\u0026gt;\u003C\/p\u003E\n"
+          "safe_value" : "[message:blueoi-message-log]"
         }
       ]
     },
