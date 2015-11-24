@@ -1,0 +1,6 @@
+name = BlueOI Commerce Order Message
+description = Provides the ability to send customers revision messages.
+core = 7.x
+
+dependencies[] = commerce_order_ui
+dependencies[] = message

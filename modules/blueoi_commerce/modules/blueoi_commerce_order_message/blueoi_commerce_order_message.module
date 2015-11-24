@@ -1,0 +1,182 @@
+<?php
+/**
+ * @file
+ * Provides the ability to message a customer from an order.
+ */
+
+/**
+ * Implements hook_flush_caches().
+ */
+function blueoi_commerce_order_message_flush_caches() {
+  blueoi_commerce_order_message_create_fields();
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function blueoi_commerce_order_message_form_commerce_order_ui_order_form_alter(&$form, &$form_state) {
+  $form['order_status']['notify_customer'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Email this update to customer'),
+  );
+  $form['actions']['submit']['#submit'][] = 'blueoi_commerce_order_message_submit';
+}
+
+/**
+ * Submit callback for notifying customer of an order update.
+ */
+function blueoi_commerce_order_message_submit($form, $form_state) {
+  if (!empty($form_state['values']['notify_customer'])) {
+    $order = $form_state['commerce_order'];
+    rules_invoke_event('blueoi_commerce_order_message_notify_customer', $order, $order->log);
+  }
+}
+
+/**
+ * Helper function to create required fields for this module.
+ */
+function blueoi_commerce_order_message_create_fields() {
+  field_cache_clear();
+
+  // Create the message order reference field base.
+  $field = field_info_field('blueoi_message_order_ref');
+  if (empty($field)) {
+    $field = array(
+      'translatable' => '0',
+      'entity_types' => array(
+        'message',
+      ),
+      'settings' => array(
+        'target_type' => 'commerce_order',
+        'handler' => 'base',
+      ),
+      'field_name' => 'blueoi_message_order_ref',
+      'type' => 'entityreference',
+      'module' => 'entityreference',
+      'active' => '1',
+      'locked' => '0',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'bundles' => array(
+        'message' => array(
+          'blueoi_commerce_order_message',
+        ),
+      ),
+    );
+    field_create_field($field);
+  }
+
+  // Create the message log field base.
+  $field = field_info_field('blueoi_message_log');
+  if (empty($field)) {
+    $field = array(
+      'translatable' => '0',
+      'entity_types' => array(),
+      'settings' => array(),
+      'field_name' => 'blueoi_message_log',
+      'type' => 'text_long',
+      'module' => 'text',
+      'active' => '1',
+      'locked' => '0',
+      'cardinality' => '1',
+      'bundles' => array(
+        'message' => array(
+          'blueoi_commerce_order_message',
+        ),
+      ),
+    );
+    field_create_field($field);
+  }
+
+  // Create the message order reference field instance.
+  $instance = field_info_instance('message', 'blueoi_message_order_ref', 'blueoi_commerce_order_message');
+  if (empty($instance)) {
+    $instance = array(
+      'label' => 'Message Order',
+      'widget' => array(
+        'weight' => '1',
+        'type' => 'entityreference_autocomplete',
+        'module' => 'entityreference',
+        'active' => 1,
+        'settings' => array(
+          'match_operator' => 'CONTAINS',
+          'size' => '60',
+          'path' => '',
+        ),
+      ),
+      'settings' => array(
+        'user_register_form' => FALSE,
+      ),
+      'required' => 0,
+      'description' => '',
+      'default_value' => NULL,
+      'field_name' => 'blueoi_message_order_ref',
+      'entity_type' => 'message',
+      'bundle' => 'blueoi_commerce_order_message',
+    );
+    field_create_instance($instance);
+  }
+
+  // Create the message log field reference.
+  $instance = field_info_instance('message', 'blueoi_message_log', 'blueoi_commerce_order_message');
+  if (empty($instance)) {
+    $instance = array(
+      'label' => 'Message Log',
+      'widget' => array(
+        'weight' => '2',
+        'type' => 'text_textarea',
+        'module' => 'text',
+        'active' => 1,
+        'settings' => array(
+          'rows' => '5',
+        ),
+      ),
+      'settings' => array(
+        'text_processing' => '0',
+        'user_register_form' => FALSE,
+      ),
+      'required' => 0,
+      'description' => '',
+      'default_value' => NULL,
+      'field_name' => 'blueoi_message_log',
+      'entity_type' => 'message',
+      'bundle' => 'blueoi_commerce_order_message',
+    );
+    field_create_instance($instance);
+  }
+}
+
+/**
+ * Implements hook_default_message_type().
+ */
+function blueoi_commerce_order_message_default_message_type() {
+  $items = array();
+  $items['blueoi_commerce_order_message'] = entity_import('message_type', '{
+    "name" : "blueoi_commerce_order_message",
+    "description" : "Customer order update message",
+    "argument_keys" : [],
+    "argument" : [],
+    "category" : "message_type",
+    "data" : {
+      "token options" : { "clear" : 0 },
+      "purge" : { "override" : 0, "enabled" : 0, "quota" : "", "days" : "" }
+    },
+    "language" : "",
+    "arguments" : null,
+    "message_text" : { "und" : [
+        {
+          "value" : "\u003Cp\u003EOrder update notification\u003C\/p\u003E",
+          "format" : "filtered_html",
+          "safe_value" : "\u003Cp\u003EOrder update notification\u003C\/p\u003E\n"
+        },
+        {
+          "value" : "\u003Cp\u003EOrder update notification body\u003C\/p\u003E",
+          "format" : "filtered_html",
+          "safe_value" : "\u003Cp\u003EOrder update notification body\u003C\/p\u003E\n"
+        }
+      ]
+    },
+    "rdf_mapping" : []
+  }');
+  return $items;
+}
