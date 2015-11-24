@@ -4,3 +4,5 @@ core = 7.x
 
 dependencies[] = commerce_order_ui
 dependencies[] = message
+dependencies[] = message_notify
+dependencies[] = entityreference
