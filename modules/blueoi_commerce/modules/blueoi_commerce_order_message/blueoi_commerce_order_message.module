@@ -165,14 +165,14 @@ function blueoi_commerce_order_message_default_message_type() {
     "arguments" : null,
     "message_text" : { "und" : [
         {
-          "value" : "\u003Cp\u003EOrder update notification\u003C\/p\u003E",
-          "format" : "filtered_html",
-          "safe_value" : "\u003Cp\u003EOrder update notification\u003C\/p\u003E\n"
+          "value" : "[site:name] Order update for #[message:blueoi-message-order-ref:order-id]",
+          "format" : "plain_text",
+          "safe_value" : "\u003Cp\u003E[site:name] Order update for #[message:blueoi-message-order-ref:order-id]\u003C\/p\u003E\n"
         },
         {
-          "value" : "\u003Cp\u003EOrder update notification body\u003C\/p\u003E",
-          "format" : "filtered_html",
-          "safe_value" : "\u003Cp\u003EOrder update notification body\u003C\/p\u003E\n"
+          "value" : "\u003Cp\u003E[message:blueoi-message-log]\u003C\/p\u003E",
+          "format" : "plain_text",
+          "safe_value" : "\u003Cp\u003E\u0026lt;p\u0026gt;[message:blueoi-message-log]\u0026lt;\/p\u0026gt;\u003C\/p\u003E\n"
         }
       ]
     },
