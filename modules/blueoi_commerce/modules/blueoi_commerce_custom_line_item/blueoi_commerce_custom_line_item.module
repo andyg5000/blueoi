@@ -1,0 +1,113 @@
+<?php
+/**
+ * @file
+ * Provides a custom/generic line item bundle.
+ */
+
+/**
+ * Implements hook_flush_caches().
+ */
+function blueoi_commerce_custom_line_item_flush_caches() {
+  blueoi_commerce_custom_line_item_create_fields();
+}
+
+/**
+ * Implements hook_commerce_line_item_type_info().
+ */
+function blueoi_commerce_custom_line_item_commerce_line_item_type_info() {
+  $type = array();
+  $type['blueoi_custom'] = array(
+    'type' => 'blueoi_custom',
+    'name' => t('Custom'),
+    'product' => TRUE,
+    'description' => t('Provides a custom or all purpose line item bundle.'),
+    'callbacks' => array(
+      'configuration' => 'blueoi_commerce_custom_line_item_general_line_item_configure',
+      'title' => 'blueoi_commerce_custom_line_item_general_line_item_title',
+    ),
+  );
+
+  return $type;
+}
+
+/**
+ * Configuration callback for general line items.
+ */
+function blueoi_commerce_custom_line_item_general_line_item_configure($line_item_type) {
+  // Set this bundle up as a product line item.
+  commerce_product_line_item_configuration($line_item_type);
+
+  field_cache_clear();
+
+  // Update the newly created instance to not be a required field.
+  $instance = field_info_instance('commerce_line_item', 'commerce_product', $line_item_type['type']);
+  $instance['required'] = FALSE;
+  field_update_instance($instance);
+}
+
+/**
+ * Title callback for general line items.
+ */
+function blueoi_commerce_custom_line_item_general_line_item_title($line_item) {
+  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+
+  // Attempt to load the product title if a reference exists.
+  try {
+    $label = $line_item_wrapper->commerce_product->title->value();
+  } catch (EntityMetadataWrapperException $ex) {
+  }
+
+  // Use the custom line item title if it exists.
+  if (empty($label)) {
+    try {
+      $label = $line_item_wrapper->blueoi_commerce_custom_li_title->value();
+    } catch (EntityMetadataWrapperException $ex) {
+    }
+  }
+
+  return $label;
+}
+
+/**
+ * Creates fields required by this module.
+ */
+function blueoi_commerce_custom_line_item_create_fields() {
+  field_cache_clear();
+  $field = field_info_field('blueoi_commerce_custom_li_title');
+  if (empty($field)) {
+    $field = array(
+      'settings' => array(
+        'max_length' => '255',
+      ),
+      'field_name' => 'blueoi_commerce_custom_li_title',
+      'type' => 'text',
+      'module' => 'text',
+      'active' => '1',
+      'locked' => '0',
+      'cardinality' => '1',
+    );
+    field_create_field($field);
+  }
+
+  $instance = field_info_instance('commerce_line_item', 'blueoi_commerce_custom_li_title', 'blueoi_custom');
+  if (empty($instance)) {
+    $instance = array(
+      'label' => 'Custom Line Item Label',
+      'widget' => array(
+        'weight' => '2',
+        'type' => 'text_textfield',
+        'module' => 'text',
+        'active' => 1,
+        'settings' => array(
+          'size' => '60',
+        ),
+      ),
+      'required' => 0,
+      'default_value' => NULL,
+      'field_name' => 'blueoi_commerce_custom_li_title',
+      'entity_type' => 'commerce_line_item',
+      'bundle' => 'blueoi_custom',
+    );
+    field_create_instance($instance);
+  }
+}

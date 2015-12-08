@@ -1,0 +1,5 @@
+name = BlueOI Commerce Custom Line Item
+description = Provides a general purpose line item bundle.
+core = 7.x
+
+dependencies[] = commerce_line_item
