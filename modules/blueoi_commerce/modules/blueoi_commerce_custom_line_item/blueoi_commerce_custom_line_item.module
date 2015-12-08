@@ -46,26 +46,37 @@ function blueoi_commerce_custom_line_item_general_line_item_configure($line_item
 }
 
 /**
+ * Implements hook_commerce_line_item_insert().
+ */
+function blueoi_commerce_custom_line_item_commerce_line_item_insert($line_item) {
+  // Set an appropriate line item label for custom line items.
+  if ($line_item->type == 'blueoi_custom') {
+    $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+
+    // Attempt to load the product title if a reference exists.
+    try {
+      $label = $line_item_wrapper->commerce_product->title->value();
+    } catch (EntityMetadataWrapperException $ex) {
+    }
+
+    // Use the custom line item title if it exists.
+    if (empty($label)) {
+      try {
+        $label = $line_item_wrapper->blueoi_commerce_custom_li_title->value();
+      } catch (EntityMetadataWrapperException $ex) {
+        $label = t('Custom line item');
+      }
+    }
+
+    $line_item->line_item_label = $label;
+  }
+}
+
+/**
  * Title callback for general line items.
  */
 function blueoi_commerce_custom_line_item_general_line_item_title($line_item) {
-  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
-
-  // Attempt to load the product title if a reference exists.
-  try {
-    $label = $line_item_wrapper->commerce_product->title->value();
-  } catch (EntityMetadataWrapperException $ex) {
-  }
-
-  // Use the custom line item title if it exists.
-  if (empty($label)) {
-    try {
-      $label = $line_item_wrapper->blueoi_commerce_custom_li_title->value();
-    } catch (EntityMetadataWrapperException $ex) {
-    }
-  }
-
-  return $label;
+  return $line_item->line_item_label;
 }
 
 /**
