@@ -122,3 +122,30 @@ function blueoi_commerce_custom_line_item_create_fields() {
     field_create_instance($instance);
   }
 }
+
+/**
+ * Implements hook_item_inline_entity_form_table_fields_alter().
+ */
+function  blueoi_commerce_custom_line_item_inline_entity_form_table_fields_alter(&$fields, $context) {
+  if (!empty($context['parent_entity_type']) && $context['parent_entity_type'] == 'commerce_order') {
+    if (!empty($context['entity_type']) && $context['entity_type'] == 'commerce_line_item') {
+      $fields['commerce_product'] = array(
+        'type' => 'field',
+        'label' => t('Product'),
+        'formatter' => 'commerce_product_reference_title_plain',
+        'weight' => 0,
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_inline_entity_form_entity_form_alter().
+ */
+function blueoi_commerce_custom_line_item_inline_entity_form_entity_form_alter(&$entity_form, &$form_state) {
+  // Add a description to the unit price to inform =
+  if ($entity_form['#entity_type'] == 'commerce_line_item' && !empty($entity_form['commerce_unit_price'])) {
+    $lang = $entity_form['commerce_unit_price']['#language'];
+    $entity_form['commerce_unit_price'][$lang][0]['amount']['#description'] = t('Set to $0 if this line item contains a product and you want to use the product\'s unit price.');
+  }
+}
