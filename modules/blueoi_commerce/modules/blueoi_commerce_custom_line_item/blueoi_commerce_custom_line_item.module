@@ -46,9 +46,9 @@ function blueoi_commerce_custom_line_item_general_line_item_configure($line_item
 }
 
 /**
- * Implements hook_commerce_line_item_insert().
+ * Implements hook_commerce_line_item_presave().
  */
-function blueoi_commerce_custom_line_item_commerce_line_item_insert($line_item) {
+function blueoi_commerce_custom_line_item_commerce_line_item_presave($line_item) {
   // Set an appropriate line item label for custom line items.
   if ($line_item->type == 'blueoi_custom') {
     $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
