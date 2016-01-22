@@ -4,3 +4,50 @@
  * @file
  * Provides base for Blue OI Commerce utility modules.
  */
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function blueoi_commerce_field_formatter_info() {
+  // Provides a base price only field formatter for commerce_price.
+  return array(
+    'blueoi_commerce_base_price_formatter' => array(
+      'label' => t('Formatted base price'),
+      'field types' => array('commerce_price'),
+      'settings' => array(
+        'calculation' => FALSE,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function blueoi_commerce_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $translated_instance = commerce_i18n_object('field_instance', $instance);
+
+  $element = array();
+
+  // Loop through each price value in this field.
+  foreach ($items as $delta => $item) {
+
+    // Do not render a price if the amount is NULL (i.e. non-zero empty value).
+    if (is_null($item['amount'])) {
+      continue;
+    }
+
+    // Create the base price formatter render array.
+    if ($display['type'] == 'blueoi_commerce_base_price_formatter') {
+
+      // Load the base price without other components.
+      $price = commerce_price_component_total($item, 'base_price');
+
+      $element[$delta] = array(
+        '#markup' => commerce_currency_format($price['amount'], $price['currency_code'], $entity),
+      );
+    }
+  }
+
+  return $element;
+}
