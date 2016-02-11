@@ -25,3 +25,63 @@ function blueoi_commerce_revisions_entity_info_alter(&$entity_info) {
     'custom settings' => TRUE,
   );
 }
+
+/**
+ * Implements hook_entity_presave().
+ *
+ * Forces the creation of a new product revision if
+ * blueoi_commerce_revisions_force_product_revisions site variable
+ * is set to TRUE.
+ */
+function blueoi_commerce_revisions_entity_presave($entity, $type) {
+  if ($type == 'commerce_product' && variable_get('blueoi_commerce_revisions_force_product_revisions')) {
+    $log = array();
+
+    $original = clone $entity->original;
+    $current = clone $entity;
+    $original_wrapper = entity_metadata_wrapper('commerce_product', $original);
+    $current_wrapper = entity_metadata_wrapper('commerce_product', $current);
+    $property_info = $current_wrapper->getPropertyInfo();
+
+    // Define fields to exclude when checking.
+    $excluded = array(
+      'changed',
+    );
+
+    // Loop through the original values and compare them to the new ones.
+    foreach ($original as $field_name => $field) {
+      // We're only concerned with properties that can be accessed
+      // via entity metadata wrapper.
+      if (empty($property_info[$field_name])) {
+        continue;
+      }
+
+      // Don't attempt to check excluded fields.
+      if (in_array($field_name, $excluded)) {
+        continue;
+      }
+
+      // Attempt to compare the raw field values to see if they've changed.
+      try {
+        $original_value = $original_wrapper->$field_name->raw();
+        $current_value = $current_wrapper->$field_name->raw();
+        if (!isset($current->$field_name) || ($original_value != $current_value)) {
+          $changed = TRUE;
+          $log[] = t('@field was changed from "@original_value" to "@current_value"', array(
+            '@field' => $property_info[$field_name]['label'],
+            '@original_value' => $original_value,
+            '@current_value' => $current_value
+          ));
+        }
+      } catch (Exception $ex) {
+        continue;
+      }
+    }
+
+    // Update the entity values to force a new revision and log changes.
+    if (!empty($changed)) {
+      $entity->log .= '<li>' . implode('</li><li>', $log) . '</li>';
+      $entity->revision = TRUE;
+    }
+  }
+}
