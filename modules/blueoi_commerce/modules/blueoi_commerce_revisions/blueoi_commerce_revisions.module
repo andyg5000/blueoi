@@ -67,10 +67,21 @@ function blueoi_commerce_revisions_entity_presave($entity, $type) {
         $current_value = $current_wrapper->$field_name->raw();
         if (!isset($current->$field_name) || ($original_value != $current_value)) {
           $changed = TRUE;
-          $log[] = t('@field was changed from "@original_value" to "@current_value"', array(
+
+          // Only display the change values if raw() isn't an array.
+          if (!is_array($original_value) || !is_array($current_value)) {
+            $change = t('from @original to @current', array(
+              '@original' => $original_value,
+              '@current' => $current_value
+            ));
+          }
+          else {
+            $change = '';
+          }
+
+          $log[] = t('@field was changed @change', array(
             '@field' => $property_info[$field_name]['label'],
-            '@original_value' => $original_value,
-            '@current_value' => $current_value
+            '@change' => $change,
           ));
         }
       } catch (Exception $ex) {
