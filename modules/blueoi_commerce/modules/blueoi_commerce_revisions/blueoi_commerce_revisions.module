@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Provides ability to view commerce revisions.
+ */
+
+/**
+ * Implements hook_views_api().
+ */
+function blueoi_commerce_revisions_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'blueoi_commerce_revisions') . '/includes/views',
+  );
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function blueoi_commerce_revisions_entity_info_alter(&$entity_info) {
+  // Define a new view mode for product entities.
+  $entity_info['commerce_product']['view modes']['blueoi_commerce_revisions_render'] = array(
+    'label' => t('Rendered product fields'),
+    'custom settings' => TRUE,
+  );
+}
