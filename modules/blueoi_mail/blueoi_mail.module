@@ -1,1 +1,6 @@
 <?php
+
+/**
+ * @file
+ * Module file for blueoi_mail.module.
+ */
