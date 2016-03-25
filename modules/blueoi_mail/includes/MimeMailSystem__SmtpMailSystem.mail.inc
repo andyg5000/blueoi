@@ -1,6 +1,9 @@
 <?php
 
-/*
+/**
+ * @file
+ * Contains MimeMailSystem__SmtpMailSystem mailsystem class.
+ *
  * Defines mailsystem class to use smtp module for sending
  * and mimemail module for rendering html emails.
  */
