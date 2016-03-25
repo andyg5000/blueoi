@@ -1,4 +1,5 @@
 name = BlueOI Simple Returns
 description = Provides simple return functionality for commerce
 core = 7.x
+package = Blue Oak Interactive
 dependencies[] = blueoi
