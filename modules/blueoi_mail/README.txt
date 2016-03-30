@@ -15,6 +15,6 @@
 * Configure SMTP module to use preferred SMTP provider /admin/config/system/smtp
     - Ensure that "Allow to send e-mails formatted as Html" is checked
 
-* Configure Mail System to use MimeMailSystem_SmtpMailSystem class as Site-wide default MailSystemInterface and module classes
+* Configure Mail System to use MimeMailSystem_SmtpMailSystem class as Site-wide default MailSystemInterface and module classes admin/config/system/mailsystem
 
 * Copy email template from mimemail (/sites/all/modules/contrib/mimemail/theme/mimemail-message.tpl.php) to default theme (/sites/all/themes/<default>/templates/mimemail/mimemail-message.tpl.php) for overriding.
