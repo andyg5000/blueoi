@@ -5,6 +5,45 @@
  * Provides improvments to commerce checkout.
  */
 
+
+/**
+ * Implements hook_cron().
+ */
+function blueoi_commerce_checkout_cron() {
+  blueoi_commerce_checkout_update_anonymous_orders();
+}
+
+/**
+ * Cron routine to update anonymous users.
+ */
+function blueoi_commerce_checkout_update_anonymous_orders() {
+  $statuses = array('completed');
+  foreach ( commerce_order_statuses(array('state' => 'pending')) as $status) {
+    $statuses[] = $status['name'];
+  }
+
+  $query = new EntityFieldQuery();
+  $results = $query->entityCondition('entity_type', 'commerce_order')
+    ->propertyCondition('uid', 0)
+    ->propertyCondition('created', strtotime('-15 minutes'), '<')
+    ->propertyCondition('status', $statuses, 'IN')
+    ->execute();
+
+  foreach ($results['commerce_order'] as $result) {
+    $order = commerce_order_load($result->order_id);
+
+    // Invoke the rules component to create a new user account if
+    // one doesn't already exist.
+    rules_invoke_component('blueoi_commerce_checkout_create_new_user_from_order', $order);
+
+    $user = user_load($order->uid);
+
+    // Invoke the rules event to trigger registration complete.
+    rules_invoke_all('commerce_checkout_complete_registration', $user, $order);
+  }
+}
+
+
 /**
  * Implements hook_form_FORM_ID_alter().
  *
