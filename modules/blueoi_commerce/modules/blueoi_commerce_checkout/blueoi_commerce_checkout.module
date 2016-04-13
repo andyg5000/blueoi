@@ -36,10 +36,29 @@ function blueoi_commerce_checkout_update_anonymous_orders() {
     // one doesn't already exist.
     rules_invoke_component('blueoi_commerce_checkout_create_new_user_from_order', $order);
 
-    $user = user_load($order->uid);
+    // Attempt to load the user object from the order
+    // or from an existing user account if one exists.
+    if (!empty($order->uid)) {
+      $user = user_load($order->uid);
+    }
+    else {
+      $user = user_load_by_mail($order->mail);
+      $update_order = TRUE;
+    }
 
-    // Invoke the rules event to trigger registration complete.
-    rules_invoke_all('commerce_checkout_complete_registration', $user, $order);
+    if (!empty($user)) {
+      // Invoke the rules event to trigger registration complete.
+      rules_invoke_all('commerce_checkout_complete_registration', $user, $order);
+
+      // Update the order owner.
+      if (!empty($update_order)) {
+        $order->uid = $user->uid;
+        commerce_order_save($order);
+      }
+    }
+    else {
+      watchdog('blueoi_commerce_checkout', 'Cannot load a user to associate with order @order_id', array('@order_id' => $order->order_id), WATCHDOG_WARNING);
+    }
   }
 }
 
