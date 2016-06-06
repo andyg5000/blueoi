@@ -88,6 +88,7 @@ function blueoi_commerce_schemaorg_get_node_product_schema($node, $args = array(
   }
 
   $schema = blueoi_commerce_schemaorg_get_default_schema('Product');
+  $product_schema = array();
 
   $node_wrapper = entity_metadata_wrapper('node', $node);
 
@@ -102,13 +103,23 @@ function blueoi_commerce_schemaorg_get_node_product_schema($node, $args = array(
   $product = !empty($args['product']) ? $args['product'] : NULL;
 
   // If no product was passed in, attempt to grab the first product reference.
-  if (empty($product) && !empty($node->field_products)) {
-    $products = $node_wrapper->field_products->value();
-    $product = array_shift($products);
+  if (empty($product)) {
+    foreach (commerce_info_fields('commerce_product_reference') as $field_name => $field) {
+      if (!empty($node->$field_name)) {
+        try {
+          $products = $node_wrapper->$field_name->value();
+          $product = array_shift($products);
+          continue;
+        }
+        catch (Exception $ex) {}
+      }
+    }
   }
 
-  // Build the product schema.
-  $product_schema = (array) blueoi_commerce_schemaorg_get_product_schema($product);
+  if (!empty($product)) {
+    // Build the product schema.
+    $product_schema = (array) blueoi_commerce_schemaorg_get_product_schema($product);
+  }
 
   // Build the comment/review schema.
   $comment_schema = (array) blueoi_commerce_schemaorg_get_review_schema($node);
