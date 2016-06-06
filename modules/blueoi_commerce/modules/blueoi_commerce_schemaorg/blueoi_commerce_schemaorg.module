@@ -156,7 +156,8 @@ function blueoi_commerce_schemaorg_get_product_schema($product) {
     'offers' => array(
       '@type' => 'Offer',
       'availability' => !empty($sold_out) ? 'http://schema.org/SoldOut' :  'http://schema.org/InStock',
-      'price' => commerce_currency_format($price['amount'], $price['currency_code']),
+      'price' => commerce_currency_amount_to_decimal($price['amount'], $price['currency_code']),
+      'priceCurrency' => $price['currency_code'],
     ),
   );
 
