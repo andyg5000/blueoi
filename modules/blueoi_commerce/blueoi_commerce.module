@@ -51,3 +51,26 @@ function blueoi_commerce_field_formatter_view($entity_type, $entity, $field, $in
 
   return $element;
 }
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function blueoi_commerce_form_commerce_order_settings_form_alter(&$form, &$form_state) {
+  // Add checkbox to order settings form to disable page cache on a2c forms.
+  $form['blueoi_commerce_disable_cache_on_cart_form'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Disable page cache for add to cart forms.'),
+    '#description' => t('Disables page caching whenever there is an add to cart form on the page/'),
+    '#default_value' => variable_get('blueoi_commerce_disable_cache_on_cart_form', FALSE),
+    '#weight' => 21,
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function blueoi_commerce_form_commerce_cart_add_to_cart_form_alter(&$form, &$form_state) {
+  if (variable_get('blueoi_commerce_disable_cache_on_cart_form', FALSE)) {
+    drupal_page_is_cacheable(FALSE);
+  }
+}
