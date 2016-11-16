@@ -32,7 +32,7 @@ function blueoi_seo_pager_previous($variables) {
 }
 
 /**
- * Implements theme_pager_previous().
+ * Implements theme_pager_next().
  */
 function blueoi_seo_pager_next($variables) {
   $text = $variables['text'];
