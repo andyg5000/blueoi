@@ -16,7 +16,7 @@ function blueoi_seo_pager_previous($variables) {
   global $pager_page_array;
   $output = '';
 
-  // If we are anywhere but the first page
+  // If we are anywhere but the first page.
   if ($pager_page_array[$element] > 0) {
     $page_new = pager_load_array($pager_page_array[$element] - $interval, $element, $pager_page_array);
 
@@ -47,7 +47,7 @@ function blueoi_seo_pager_next($variables) {
   global $pager_page_array, $pager_total;
   $output = '';
 
-  // If we are anywhere but the last page
+  // If we are anywhere but the last page.
   if ($pager_page_array[$element] < ($pager_total[$element] - 1)) {
     $page_new = pager_load_array($pager_page_array[$element] + $interval, $element, $pager_page_array);
 
