@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Module file for blueoi_seo.module.
+ */
+
+/**
  * Implements theme_pager_previous().
  */
 function blueoi_seo_pager_previous($variables) {
