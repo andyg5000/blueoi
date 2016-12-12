@@ -16,20 +16,34 @@ function blueoi_seo_pager_previous($variables) {
   global $pager_page_array;
   $output = '';
 
-  // If we are anywhere but the first page.
+  // User pager links.
   if ($pager_page_array[$element] > 0) {
     $page_new = pager_load_array($pager_page_array[$element] - $interval, $element, $pager_page_array);
-
-    // Changes from core function start here.
     $attributes = array('rel' => 'prev');
 
-    // If the previous page is the first page, mark the link as such.
     if ($page_new[$element] == 0) {
       $output = theme('pager_first', array('text' => $text, 'element' => $element, 'parameters' => $parameters, 'attributes' => $attributes));
     }
-    // The previous page is not the first page.
     else {
       $output = theme('pager_link', array('text' => $text, 'page_new' => $page_new, 'element' => $element, 'parameters' => $parameters, 'attributes' => $attributes));
+    }
+  }
+
+  // Head pager links
+  if (true || $pager_page_array[$element] > 0) {
+    $page_new = pager_load_array($pager_page_array[$element] - $interval, $element, $pager_page_array);
+    if ($page_new[$element] == 0) {
+      $page = isset($_GET['page']) ? $_GET['page'] : '';
+      if ($page == 1) {
+        $head_link = _blueoi_seo_pager_prep_rel_link($page_new, $element, $parameters, 'prev');
+        drupal_add_html_head($head_link, 'blueoi_seo_pager:prev:' . $head_link['#attributes']['href']);
+      }
+    }
+    else {
+      if (($page_new[$element] == $pager_page_array[$element] - 1) && (!($page_new[$element] < 0))) {
+        $head_link = _blueoi_seo_pager_prep_rel_link($page_new, $element, $parameters, 'prev');
+        drupal_add_html_head($head_link, 'blueoi_seo_pager:prev:' . $head_link['#attributes']['href']);
+      }
     }
   }
 
@@ -47,23 +61,86 @@ function blueoi_seo_pager_next($variables) {
   global $pager_page_array, $pager_total;
   $output = '';
 
-  // If we are anywhere but the last page.
+  // User pager links
   if ($pager_page_array[$element] < ($pager_total[$element] - 1)) {
     $page_new = pager_load_array($pager_page_array[$element] + $interval, $element, $pager_page_array);
-
-    // Changes from core function start here.
     $attributes = array('rel' => 'next');
 
-    // If the next page is the last page, mark the link as such.
     if ($page_new[$element] == ($pager_total[$element] - 1)) {
       $output = theme('pager_last', array('text' => $text, 'element' => $element, 'parameters' => $parameters, 'attributes' => $attributes));
     }
-
-    // The next page is not the last page.
     else {
       $output = theme('pager_link', array('text' => $text, 'page_new' => $page_new, 'element' => $element, 'parameters' => $parameters, 'attributes' => $attributes));
     }
   }
 
+  // Head pager links
+  if (true || $pager_page_array[$element] < ($pager_total[$element] - 1)) {
+    $page_new = pager_load_array($pager_page_array[$element] + $interval, $element, $pager_page_array);
+    if ($page_new[$element] == ($pager_total[$element] - 1)) {
+      if (($page_new[$element] == $pager_page_array[$element] + 1) && ($pager_page_array[$element] < ($pager_total[$element] - 1))) {
+        $head_link = _blueoi_seo_pager_prep_rel_link($page_new, $element, $parameters, 'next');
+        drupal_add_html_head($head_link, 'blueoi_seo_pager:next:' . $head_link['#attributes']['href']);
+      }
+    }
+    else {
+      if (($page_new[$element] == $pager_page_array[$element] + 1) && ($pager_page_array[$element] < ($pager_total[$element] - 1))) {
+        $head_link = _blueoi_seo_pager_prep_rel_link($page_new, $element, $parameters, 'next');
+        drupal_add_html_head($head_link, 'blueoi_seo_pager:next:' . $head_link['#attributes']['href']);
+      }
+    }
+  }
+
   return $output;
+}
+
+/*
+ * Helper function for blueoi_seo_pager.
+ * Builds markup for seo pager links.
+ * See: https://googlewebmastercentral.blogspot.com/2011/09/pagination-with-relnext-and-relprev.html.
+ *
+ * @param $new_page array
+ *   An array containing results of pager_load_array().
+ *
+ * @param $element integer
+ *   An optional integer to distinguish between multiple pagers on one page..
+ *
+ * @param $parameters array
+ *   An associative array of query string parameters to append to the pager links.
+ *
+ * @param $rel string
+ *   A string used in setting the rel value returned.
+ *
+ * Example:
+ *   $head_link = _blueoi_seo_pager_prep_rel_link($page_new, $element, $parameters, 'next');
+ *   drupal_add_html_head($head_link, 'blueoi_seo_pager:next:' . $head_link['#attributes']['href']);
+ *
+ */
+function _blueoi_seo_pager_prep_rel_link($page_new, $element, $parameters = array(), $rel = 'next') {
+  $page = isset($_GET['page']) ? $_GET['page'] : '';
+  if ($new_page = implode(',', pager_load_array($page_new[$element], $element, explode(',', $page)))) {
+    $parameters['page'] = $new_page;
+  }
+
+  $query = array();
+  if (count($parameters)) {
+    $query = drupal_get_query_parameters($parameters, array());
+  }
+  if ($query_pager = pager_get_query_parameters()) {
+    $query = array_merge($query, $query_pager);
+  }
+
+  return array(
+    '#tag' => 'link',
+    '#attributes' => array(
+      'rel' => $rel,
+      'href' => url(
+        $_GET['q'],
+        array(
+          'query' => $query,
+          'absolute' => TRUE,
+        )
+      ),
+    ),
+  );
 }
