@@ -109,14 +109,9 @@ function blueoi_commerce_send_cart_receive_callback($order) {
 
   // Update the cart session.
   commerce_cart_order_session_save($order->order_id);
-  $target_uri = commerce_checkout_order_uri($order);
 
-  // Redirect the user to the appropriate location.
-  if (!empty($target_uri)) {
-    drupal_goto($target_uri);
-  }
-
-  drupal_goto('/cart');
+  // Redirect the user to the appropriate url.
+  drupal_goto(blueoi_commerce_send_cart_get_redirect($order));
 }
 
 /**
@@ -184,5 +179,22 @@ function blueoi_commerce_send_cart_send_form_submit($form, &$form_state) {
   $order->data['blueoi_commerce_send_cart']['sent'] = TRUE;
   commerce_order_save($order);
   rules_invoke_event('blueoi_commerce_send_cart_send', $to, $subject, $message, $order);
-  drupal_goto();
+  $form_state['redirect'] = blueoi_commerce_send_cart_get_redirect($order);
+}
+
+/**
+ * Determine the appropriate redirect for order.
+ *
+ * @param $order
+ * @return string
+ */
+function blueoi_commerce_send_cart_get_redirect($order) {
+  $target_uri = commerce_checkout_order_uri($order);
+
+  // Redirect the user to the appropriate location.
+  if (!empty($target_uri)) {
+    return $target_uri;
+  }
+
+  return 'cart';
 }
