@@ -11,7 +11,7 @@
  * @param $user
  *   A Drupal user object.
  * @param $skus
- *   A string of sku's optionally separated by \r\n
+ *   A string of sku's as an array or optionally separated by \r\n.
  * @param $include_cart
  *  Include cart/checkout statuses in results.
  *
@@ -19,7 +19,10 @@
  *  The number of matching records.
  */
 function blueoi_commerce_rules_owner_has_purchased_skus($user, $skus, $include_cart) {
-  $skus = strstr($skus, "\r\n") ? explode("\r\n", $skus) : array($skus);
+  if (is_string($skus)) {
+    $skus = strstr($skus, "\r\n") ? explode("\r\n", $skus) : array($skus);
+  }
+
   // Define order statuses for query.
   $cart = commerce_order_statuses(array('state' => 'cart'));
   $checkout = commerce_order_statuses(array('state' => 'checkout'));
@@ -50,5 +53,5 @@ function blueoi_commerce_rules_owner_has_purchased_skus($user, $skus, $include_c
   }
 
   // Return the number of records.
-  return !empty($results->rowCount());
+  return $results->rowCount() > 0;
 }
