@@ -10,6 +10,7 @@
  */
 function blueoi_commerce_cron() {
   blueoi_commerce_prune_order_revision_data();
+  blueoi_commerce_prune_expired_shopping_carts();
 }
 
 /**
@@ -136,6 +137,32 @@ function blueoi_commerce_form_commerce_order_settings_form_alter(&$form, &$form_
       ),
     ),
   );
+
+  // Add checkbox to enable pruning of expired shopping carts.
+  $form['blueoi_commerce_prune_expired_shopping_carts'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Delete expired shopping carts'),
+    '#description' => t('Deletes expired shopping cart orders to free up disk space.'),
+    '#default_value' => variable_get('blueoi_commerce_prune_expired_shopping_carts', FALSE),
+    '#weight' => 24,
+  );
+
+  // Text field to define number of days to keep revision data.
+  $form['blueoi_commerce_prune_expired_shopping_carts_days'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Shopping cart retention in days'),
+    '#description' => t('Number of days to keep a shopping cart order before it is deleted.'),
+    '#default_value' => variable_get('blueoi_commerce_prune_expired_shopping_carts_days', 90),
+    '#weight' => 25,
+    '#states' => array(
+      'visible' => array(
+        ':input[name="blueoi_commerce_prune_expired_shopping_carts"]' => array('checked' => TRUE),
+      ),
+      'required' => array(
+        ':input[name="blueoi_commerce_prune_expired_shopping_carts"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
 }
 
 /**
@@ -149,6 +176,28 @@ function blueoi_commerce_prune_order_revision_data() {
     $revision_ids = db_query('select cor.revision_id FROM commerce_order_revision cor LEFT JOIN commerce_order co ON cor.revision_id = co.revision_id WHERE co.order_id IS NULL AND revision_timestamp < :revision_life ORDER BY co.order_id DESC', array(':revision_life' => $revision_life))->fetchAllKeyed(0, 0);
     foreach ($revision_ids as $revision_id) {
       entity_revision_delete('commerce_order', $revision_id);
+    }
+  }
+}
+
+/**
+ * Deletes abandoned cart orders that are older than x days.
+ */
+function blueoi_commerce_prune_expired_shopping_carts() {
+  $statuses = array_keys(commerce_order_statuses(array('cart' => TRUE)));
+  $prune = variable_get('blueoi_commerce_prune_expired_shopping_carts', FALSE);
+  $expiration_days = variable_get('blueoi_commerce_prune_expired_shopping_carts_days', FALSE);
+  if (!empty($prune) && !empty($expiration_days) && is_numeric($expiration_days)) {
+    $cart_expiration = strtotime('- ' . $expiration_days . ' days');
+    $carts = (array) db_select('commerce_order', 'co')
+      ->fields('co', array('order_id'))
+      ->condition('status', $statuses, 'IN')
+      ->condition('created', $cart_expiration, '<')
+      ->execute()
+      ->fetchAllKeyed(0, 0);
+
+    foreach ($carts as $cart) {
+      commerce_order_delete($cart);
     }
   }
 }
