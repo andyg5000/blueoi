@@ -6,6 +6,52 @@
  */
 
 /**
+ * Implements hook_cron().
+ */
+function blueoi_commerce_cron() {
+  blueoi_commerce_prune_order_revision_data();
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function blueoi_commerce_entity_info_alter(&$entity_info) {
+  if (!empty($entity_info['commerce_order']) && empty($entity_info['commerce_order']['revision deletion callback'])) {
+    $entity_info['commerce_order']['revision deletion callback'] = '_blueoi_commerce_commerce_order_revision_delete';
+  }
+}
+
+/**
+ * Deletes a commerce_order revision.
+ *
+ * @param $revision_id
+ *   The revision ID to delete.
+ * @return bool
+ */
+function _blueoi_commerce_commerce_order_revision_delete($revision_id) {
+  // Create a revision delete callback for commerce orders until
+  // https://www.drupal.org/node/2442049 is committed.
+  if ($revisions = commerce_order_load_multiple(array(), array('revision_id' => $revision_id))) {
+    $revision = $revisions ? reset($revisions) : FALSE;
+    // Prevent deleting the current revision.
+    if (!$revision || commerce_order_is_latest_revision($revision)) {
+      return FALSE;
+    }
+
+    // Delete order revision.
+    db_delete('commerce_order_revision')
+      ->condition('order_id', $revision->order_id)
+      ->condition('revision_id', $revision->revision_id)
+      ->execute();
+
+    module_invoke_all('commerce_order_revision_delete', $revision);
+    field_attach_delete_revision('commerce_order', $revision);
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
  * Implements hook_field_formatter_info().
  */
 function blueoi_commerce_field_formatter_info() {
@@ -64,6 +110,47 @@ function blueoi_commerce_form_commerce_order_settings_form_alter(&$form, &$form_
     '#default_value' => variable_get('blueoi_commerce_disable_cache_on_cart_form', FALSE),
     '#weight' => 21,
   );
+
+  // Add checkbox to enable pruning of order revision data.
+  $form['blueoi_commerce_prune_order_revision_data'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Delete order revision data'),
+    '#description' => t('Deletes order revision data to free up disk space.'),
+    '#default_value' => variable_get('blueoi_commerce_prune_order_revision_data', FALSE),
+    '#weight' => 22,
+  );
+
+  // Text field to define number of days to keep revision data.
+  $form['blueoi_commerce_prune_order_revision_days'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Revision retention in days'),
+    '#description' => t('Number of days to keep order revision data before it is deleted.'),
+    '#default_value' => variable_get('blueoi_commerce_prune_order_revision_days', 90),
+    '#weight' => 23,
+    '#states' => array(
+      'visible' => array(
+        ':input[name="blueoi_commerce_prune_order_revision_data"]' => array('checked' => TRUE),
+      ),
+      'required' => array(
+        ':input[name="blueoi_commerce_prune_order_revision_data"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+}
+
+/**
+ * Provides callback to prune order revision data.
+ */
+function blueoi_commerce_prune_order_revision_data() {
+  $prune = variable_get('blueoi_commerce_prune_order_revision_data', FALSE);
+  $revision_days = variable_get('blueoi_commerce_prune_order_revision_days', FALSE);
+  if (!empty($prune) && !empty($revision_days) && is_numeric($revision_days)) {
+    $revision_life = strtotime('- ' . $revision_days . ' days');
+    $revision_ids = db_query('select cor.revision_id FROM commerce_order_revision cor LEFT JOIN commerce_order co ON cor.revision_id = co.revision_id WHERE co.order_id IS NULL AND revision_timestamp < :revision_life ORDER BY co.order_id DESC', array(':revision_life' => $revision_life))->fetchAllKeyed(0, 0);
+    foreach ($revision_ids as $revision_id) {
+      entity_revision_delete('commerce_order', $revision_id);
+    }
+  }
 }
 
 /**
