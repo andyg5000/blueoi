@@ -27,9 +27,9 @@ function blueoi_commerce_rules_rules_condition_info() {
         'type' => 'boolean',
         'label' => t('Include active cart'),
       ),
-      'exclude_ids' => array(
-        'type' => 'list<integer>',
-        'label' => t('Exclude order ids'),
+      'exclude_id' => array(
+        'type' => 'integer',
+        'label' => t('Exclude order id'),
         'optional' => TRUE,
       ),
     ),
