@@ -14,11 +14,13 @@
  *   A string of sku's as an array or optionally separated by \r\n.
  * @param $include_cart
  *  Include cart/checkout statuses in results.
+ * @param $exclude_ids
+ *  Optionally exclude order ids from query.
  *
  * @return integer
  *  The number of matching records.
  */
-function blueoi_commerce_rules_owner_has_purchased_skus($user, $skus, $include_cart) {
+function blueoi_commerce_rules_owner_has_purchased_skus($user, $skus, $include_cart, $exclude_ids = array()) {
   if (is_string($skus)) {
     $skus = strstr($skus, "\r\n") ? explode("\r\n", $skus) : array($skus);
   }
@@ -44,6 +46,10 @@ function blueoi_commerce_rules_owner_has_purchased_skus($user, $skus, $include_c
   $query->condition('cp.sku', $skus, 'IN');
   $query->condition('co.uid', $user->uid);
   $query->condition('co.status', $statuses, 'IN');
+
+  if (!empty($exclude_ids)) {
+    $query->condition('co.order_id', $exclude_ids, 'NOT IN');
+  }
 
   try {
     $results = $query->execute();

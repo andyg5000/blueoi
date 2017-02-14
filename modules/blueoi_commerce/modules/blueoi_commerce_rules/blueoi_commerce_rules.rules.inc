@@ -27,6 +27,11 @@ function blueoi_commerce_rules_rules_condition_info() {
         'type' => 'boolean',
         'label' => t('Include active cart'),
       ),
+      'exclude_ids' => array(
+        'type' => 'list<integer>',
+        'label' => t('Exclude order ids'),
+        'optional' => TRUE,
+      ),
     ),
     'callbacks' => array(
       'execute' => 'blueoi_commerce_rules_owner_has_purchased_skus',
