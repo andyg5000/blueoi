@@ -34,7 +34,7 @@ function blueoi_commerce_revisions_entity_info_alter(&$entity_info) {
  * is set to TRUE.
  */
 function blueoi_commerce_revisions_entity_presave($entity, $type) {
-  if ($type == 'commerce_product' && variable_get('blueoi_commerce_revisions_force_product_revisions')) {
+  if ($type == 'commerce_product' && !empty($entity->original) && is_object($entity->original) && variable_get('blueoi_commerce_revisions_force_product_revisions')) {
     $log = array();
 
     $original = clone $entity->original;
