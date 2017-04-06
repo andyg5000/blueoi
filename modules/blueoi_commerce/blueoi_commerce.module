@@ -210,3 +210,35 @@ function blueoi_commerce_form_commerce_cart_add_to_cart_form_alter(&$form, &$for
     drupal_page_is_cacheable(FALSE);
   }
 }
+
+/**
+ * Implements hook_commerce_braintree_js_sale_data().
+ */
+function blueoi_commerce_commerce_braintree_js_sale_data(&$sale_data, $order) {
+  // Set Blue Oak Interactive affiliate code for all BrainTree transactions.
+  $sale_data['channel'] = 'BlueOakInteractive_SP_BT';
+}
+
+/**
+ * Implements hook_commerce_payment_method_info_alter().
+ */
+function blueoi_commerce_commerce_payment_method_info_alter(&$payment_methods) {
+  // List of PayPal payment methods to alter. This doesn't work for PayPal WPS.
+  // To alter PayPal WPS data see hook_commerce_paypal_wps_order_form_data() below.
+  $paypal_payment_methods = array('paypal_ec', 'payflow_link', 'paypal_ppa', 'paypal_wpp', 'paypal_wps');
+
+  // Set Blue Oak Interactive affiliate code for all PayPal transactions.
+  foreach ($payment_methods as $payment_method => $data) {
+    if (in_array($payment_method, $paypal_payment_methods)) {
+      $payment_methods[$payment_method]['buttonsource'] = 'BlueOakInteractive_SP_BT';
+    }
+  }
+}
+
+/**
+ * Implements hook_commerce_paypal_wps_order_form_data().
+ */
+function blueoi_commerce_commerce_paypal_wps_order_form_data(&$data, $order){
+  // Set Blue Oak Interactive affiliate code for all PayPal WPS transactions.
+  $data['bn'] = 'BlueOakInteractive_SP_BT';
+}
