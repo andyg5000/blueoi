@@ -214,7 +214,7 @@ function blueoi_commerce_form_commerce_cart_add_to_cart_form_alter(&$form, &$for
 /**
  * Implements hook_commerce_braintree_js_sale_data().
  */
-function blueoi_commerce_commerce_braintree_js_sale_data(&$sale_data, $order) {
+function blueoi_commerce_commerce_braintree_js_sale_data_alter(&$sale_data, $order) {
   // Set Blue Oak Interactive affiliate code for all BrainTree transactions.
   $sale_data['channel'] = 'BlueOakInteractive_SP_BT';
 }
