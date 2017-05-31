@@ -10,7 +10,10 @@
  * Implements hook_cron().
  */
 function blueoi_commerce_checkout_cron() {
+  global $user;
+  $cron_user = clone $user;
   blueoi_commerce_checkout_update_anonymous_orders();
+  $user = $cron_user;
 }
 
 /**
@@ -18,7 +21,7 @@ function blueoi_commerce_checkout_cron() {
  */
 function blueoi_commerce_checkout_update_anonymous_orders() {
   $statuses = array('completed');
-  foreach ( commerce_order_statuses(array('state' => 'pending')) as $status) {
+  foreach (commerce_order_statuses(array('state' => 'pending')) as $status) {
     $statuses[] = $status['name'];
   }
 
@@ -29,35 +32,25 @@ function blueoi_commerce_checkout_update_anonymous_orders() {
     ->propertyCondition('status', $statuses, 'IN')
     ->execute();
 
-  foreach ($results['commerce_order'] as $result) {
-    $order = commerce_order_load($result->order_id);
+  // If there are any anonymous orders, pass them to the
+  // submit handler for checkout_complete_registration.
+  if (!empty($results['commerce_order'])) {
+    foreach ($results['commerce_order'] as $result) {
+      $order = commerce_order_load($result->order_id);
 
-    // Invoke the rules component to create a new user account if
-    // one doesn't already exist.
-    rules_invoke_component('blueoi_commerce_checkout_create_new_user_from_order', $order);
-
-    // Attempt to load the user object from the order
-    // or from an existing user account if one exists.
-    if (!empty($order->uid)) {
-      $user = user_load($order->uid);
-    }
-    else {
-      $user = user_load_by_mail($order->mail);
-      $update_order = TRUE;
-    }
-
-    if (!empty($user)) {
-      // Invoke the rules event to trigger registration complete.
-      rules_invoke_all('commerce_checkout_complete_registration', $user, $order);
-
-      // Update the order owner.
-      if (!empty($update_order)) {
-        $order->uid = $user->uid;
+      // Attempt to associate the order with an existing user.
+      $account = user_load_by_mail($order->mail);
+      if (!empty($account)) {
+        $order->uid = $account->uid;
         commerce_order_save($order);
+        continue;
       }
-    }
-    else {
-      watchdog('blueoi_commerce_checkout', 'Cannot load a user to associate with order @order_id', array('@order_id' => $order->order_id), WATCHDOG_WARNING);
+
+      // Create a new account by invoking commerce checkout
+      // complete registration.
+      $form_state = array();
+      $form_state['order'] = $order;
+      drupal_form_submit('commerce_checkout_complete_registration_confirmation_pane_checkout_form_submit', $form_state);
     }
   }
 }
