@@ -173,7 +173,7 @@ function blueoi_commerce_prune_order_revision_data() {
   $revision_days = variable_get('blueoi_commerce_prune_order_revision_days', FALSE);
   if (!empty($prune) && !empty($revision_days) && is_numeric($revision_days)) {
     $revision_life = strtotime('- ' . $revision_days . ' days');
-    $revision_ids = db_query('select cor.revision_id FROM commerce_order_revision cor LEFT JOIN commerce_order co ON cor.revision_id = co.revision_id WHERE co.order_id IS NULL AND revision_timestamp < :revision_life ORDER BY co.order_id DESC', array(':revision_life' => $revision_life))->fetchAllKeyed(0, 0);
+    $revision_ids = db_query('select cor.revision_id FROM commerce_order_revision cor LEFT JOIN commerce_order co ON cor.revision_id = co.revision_id WHERE co.order_id IS NULL AND revision_timestamp < :revision_life ORDER BY co.order_id DESC LIMIT 100', array(':revision_life' => $revision_life))->fetchAllKeyed(0, 0);
     foreach ($revision_ids as $revision_id) {
       entity_revision_delete('commerce_order', $revision_id);
     }
@@ -193,6 +193,7 @@ function blueoi_commerce_prune_expired_shopping_carts() {
       ->fields('co', array('order_id'))
       ->condition('status', $statuses, 'IN')
       ->condition('created', $cart_expiration, '<')
+      ->range(0, 100)
       ->execute()
       ->fetchAllKeyed(0, 0);
 
