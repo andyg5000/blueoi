@@ -1,0 +1,6 @@
+name = BlueOI Commerce Recurring
+description = Provides settings and overrides for sites with commerce_license_billing
+core = 7.x
+package = Blue Oak Interactive
+
+dependencies[] = rules_server_variables

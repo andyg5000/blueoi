@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Install file for BlueOI Commerce recurring.
+ */
+
+/**
+ * Implements hook_enable().
+ */
+function blueoi_commerce_recurring_enable() {
+  variable_set('advancedqueue_use_cron', TRUE);
+}
