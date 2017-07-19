@@ -424,3 +424,13 @@ function blueoi_commerce_recurring_views_default_views() {
 
   return $views;
 }
+
+/**
+ * Implements hook_views_default_views_alter().
+ */
+function blueoi_commerce_recurring_views_default_views_alter(&$views) {
+  // Alter the user orders view to exclude recurring orders.
+  if (!empty($views['commerce_user_orders'])) {
+    $views['commerce_user_orders']->display['default']->display_options['filters']['state']['value']['recurring'] = 'recurring';
+  }
+}
