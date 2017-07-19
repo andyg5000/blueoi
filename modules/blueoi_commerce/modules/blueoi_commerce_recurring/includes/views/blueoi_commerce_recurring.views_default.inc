@@ -166,8 +166,8 @@ function blueoi_commerce_recurring_views_default_views() {
   $handler->display->display_options['empty']['area']['table'] = 'views';
   $handler->display->display_options['empty']['area']['field'] = 'area';
   $handler->display->display_options['empty']['area']['empty'] = TRUE;
-  $handler->display->display_options['empty']['area']['content'] = 'No results match your search.';
-  $handler->display->display_options['empty']['area']['format'] = 'wysiwyg_editor';
+  $handler->display->display_options['empty']['area']['content'] = 'There are currently no recurring orders that match your filters.';
+  $handler->display->display_options['empty']['area']['format'] = 'plain_text';
   /* Relationship: Commerce Order: Owner */
   $handler->display->display_options['relationships']['uid']['id'] = 'uid';
   $handler->display->display_options['relationships']['uid']['table'] = 'commerce_order';
@@ -279,7 +279,7 @@ function blueoi_commerce_recurring_views_default_views() {
   $handler->display->display_options['fields']['end']['table'] = 'cl_billing_cycle';
   $handler->display->display_options['fields']['end']['field'] = 'end';
   $handler->display->display_options['fields']['end']['relationship'] = 'cl_billing_cycle_target_id';
-  $handler->display->display_options['fields']['end']['label'] = 'Ends';
+  $handler->display->display_options['fields']['end']['label'] = 'Renews';
   $handler->display->display_options['fields']['end']['date_format'] = 'short';
   $handler->display->display_options['fields']['end']['second_date_format'] = 'long';
   /* Field: Commerce Order: Order status */
@@ -311,51 +311,11 @@ function blueoi_commerce_recurring_views_default_views() {
   $handler->display->display_options['filters']['status_1']['table'] = 'commerce_order';
   $handler->display->display_options['filters']['status_1']['field'] = 'status';
   $handler->display->display_options['filters']['status_1']['value'] = array(
-    'dunning_past_due' => 'dunning_past_due',
     'canceled' => 'canceled',
-    'pending' => 'pending',
-    'processing' => 'processing',
+    'dunning_past_due' => 'dunning_past_due',
     'recurring_open' => 'recurring_open',
-    'completed' => 'completed',
   );
   $handler->display->display_options['filters']['status_1']['group'] = 1;
-  /* Filter criterion: Commerce Order: Order status */
-  $handler->display->display_options['filters']['status']['id'] = 'status';
-  $handler->display->display_options['filters']['status']['table'] = 'commerce_order';
-  $handler->display->display_options['filters']['status']['field'] = 'status';
-  $handler->display->display_options['filters']['status']['value'] = array(
-    'canceled' => 'canceled',
-    'dunning_past_due' => 'dunning_past_due',
-    'pending' => 'pending',
-    'processing' => 'processing',
-    'completed' => 'completed',
-    'recurring_open' => 'recurring_open',
-  );
-  $handler->display->display_options['filters']['status']['group'] = 1;
-  $handler->display->display_options['filters']['status']['exposed'] = TRUE;
-  $handler->display->display_options['filters']['status']['expose']['operator_id'] = 'status_op';
-  $handler->display->display_options['filters']['status']['expose']['label'] = 'Status';
-  $handler->display->display_options['filters']['status']['expose']['operator'] = 'status_op';
-  $handler->display->display_options['filters']['status']['expose']['identifier'] = 'status';
-  $handler->display->display_options['filters']['status']['expose']['remember_roles'] = array(
-    2 => '2',
-    1 => 0,
-    3 => 0,
-    4 => 0,
-    5 => 0,
-    6 => 0,
-    7 => 0,
-    8 => 0,
-  );
-  $handler->display->display_options['filters']['status']['expose']['reduce'] = TRUE;
-  $handler->display->display_options['filters']['status']['group_info']['label'] = 'Order status';
-  $handler->display->display_options['filters']['status']['group_info']['identifier'] = 'status';
-  $handler->display->display_options['filters']['status']['group_info']['remember'] = FALSE;
-  $handler->display->display_options['filters']['status']['group_info']['group_items'] = array(
-    1 => array(),
-    2 => array(),
-    3 => array(),
-  );
   /* Filter criterion: User: Name */
   $handler->display->display_options['filters']['uid']['id'] = 'uid';
   $handler->display->display_options['filters']['uid']['table'] = 'users';
@@ -383,78 +343,27 @@ function blueoi_commerce_recurring_views_default_views() {
     10 => 0,
     9 => 0,
   );
-  /* Filter criterion: Date: Date (commerce_license) */
-  $handler->display->display_options['filters']['date_filter']['id'] = 'date_filter';
-  $handler->display->display_options['filters']['date_filter']['table'] = 'commerce_license';
-  $handler->display->display_options['filters']['date_filter']['field'] = 'date_filter';
-  $handler->display->display_options['filters']['date_filter']['relationship'] = 'cl_billing_license_target_id';
-  $handler->display->display_options['filters']['date_filter']['operator'] = 'not empty';
-  $handler->display->display_options['filters']['date_filter']['exposed'] = TRUE;
-  $handler->display->display_options['filters']['date_filter']['expose']['operator_id'] = 'date_filter_op';
-  $handler->display->display_options['filters']['date_filter']['expose']['label'] = 'Expiration';
-  $handler->display->display_options['filters']['date_filter']['expose']['use_operator'] = TRUE;
-  $handler->display->display_options['filters']['date_filter']['expose']['operator'] = 'date_filter_op';
-  $handler->display->display_options['filters']['date_filter']['expose']['identifier'] = 'date_filter';
-  $handler->display->display_options['filters']['date_filter']['expose']['remember_roles'] = array(
-    2 => '2',
-    1 => 0,
-    3 => 0,
-    4 => 0,
-    5 => 0,
-    6 => 0,
-    7 => 0,
-    8 => 0,
-  );
-  $handler->display->display_options['filters']['date_filter']['form_type'] = 'date_popup';
-  $handler->display->display_options['filters']['date_filter']['default_date'] = 'now';
-  $handler->display->display_options['filters']['date_filter']['date_fields'] = array(
-    'commerce_license.expires' => 'commerce_license.expires',
-  );
-  /* Filter criterion: Commerce License: Status */
-  $handler->display->display_options['filters']['status_2']['id'] = 'status_2';
-  $handler->display->display_options['filters']['status_2']['table'] = 'commerce_license';
-  $handler->display->display_options['filters']['status_2']['field'] = 'status';
-  $handler->display->display_options['filters']['status_2']['relationship'] = 'cl_billing_license_target_id';
-  $handler->display->display_options['filters']['status_2']['exposed'] = TRUE;
-  $handler->display->display_options['filters']['status_2']['expose']['operator_id'] = 'status_2_op';
-  $handler->display->display_options['filters']['status_2']['expose']['label'] = 'License Status';
-  $handler->display->display_options['filters']['status_2']['expose']['operator'] = 'status_2_op';
-  $handler->display->display_options['filters']['status_2']['expose']['identifier'] = 'status_2';
-  $handler->display->display_options['filters']['status_2']['expose']['remember_roles'] = array(
-    2 => '2',
-    1 => 0,
-    3 => 0,
-    4 => 0,
-    5 => 0,
-    6 => 0,
-    7 => 0,
-    8 => 0,
-  );
   /* Filter criterion: Commerce License Billing Cycle: Status */
   $handler->display->display_options['filters']['status_3']['id'] = 'status_3';
   $handler->display->display_options['filters']['status_3']['table'] = 'cl_billing_cycle';
   $handler->display->display_options['filters']['status_3']['field'] = 'status';
   $handler->display->display_options['filters']['status_3']['relationship'] = 'cl_billing_cycle_target_id';
+  $handler->display->display_options['filters']['status_3']['value'] = '1';
+  $handler->display->display_options['filters']['status_3']['group'] = 1;
   $handler->display->display_options['filters']['status_3']['exposed'] = TRUE;
   $handler->display->display_options['filters']['status_3']['expose']['operator_id'] = '';
   $handler->display->display_options['filters']['status_3']['expose']['label'] = 'Recurring Status';
   $handler->display->display_options['filters']['status_3']['expose']['operator'] = 'status_3_op';
   $handler->display->display_options['filters']['status_3']['expose']['identifier'] = 'status_3';
-  $handler->display->display_options['filters']['status_3']['expose']['required'] = TRUE;
   $handler->display->display_options['filters']['status_3']['expose']['remember_roles'] = array(
     2 => '2',
     1 => 0,
     3 => 0,
-    11 => 0,
-    7 => 0,
-    13 => 0,
-    5 => 0,
     4 => 0,
-    12 => 0,
-    8 => 0,
+    5 => 0,
     6 => 0,
-    10 => 0,
-    9 => 0,
+    7 => 0,
+    8 => 0,
   );
 
   /* Display: Recurring Order Management */
@@ -487,7 +396,7 @@ function blueoi_commerce_recurring_views_default_views() {
     t('‹ previous'),
     t('next ›'),
     t('last »'),
-    t('No results match your search.'),
+    t('There are currently no recurring orders that match your filters.'),
     t('Drupal User'),
     t('Line items'),
     t('License'),
@@ -502,15 +411,12 @@ function blueoi_commerce_recurring_views_default_views() {
     t('Purchased By User'),
     t('Item'),
     t('Total'),
-    t('Ends'),
+    t('Renews'),
     t('Order Status'),
     t('License Status'),
     t('Recurring Status'),
     t('Card Status'),
     t('<strong style="color:red">Bad Card</strong>'),
-    t('Status'),
-    t('Order status'),
-    t('Expiration'),
     t('Displaying @start - @end of @total Total Recurring Orders'),
   );
 
