@@ -26,7 +26,7 @@ function blueoi_commerce_recurring_views_default_views() {
   $handler->display->display_options['title'] = 'Recurring Order Management';
   $handler->display->display_options['use_more_always'] = FALSE;
   $handler->display->display_options['access']['type'] = 'perm';
-  $handler->display->display_options['access']['perm'] = 'administer commerce_order entities';
+  $handler->display->display_options['access']['perm'] = 'view own commerce_order entities of bundle recurring';
   $handler->display->display_options['cache']['type'] = 'none';
   $handler->display->display_options['query']['type'] = 'views_query';
   $handler->display->display_options['query']['options']['distinct'] = TRUE;
@@ -380,6 +380,108 @@ function blueoi_commerce_recurring_views_default_views() {
   $handler->display->display_options['menu']['weight'] = '10';
   $handler->display->display_options['menu']['context'] = 0;
   $handler->display->display_options['menu']['context_only_inline'] = 0;
+
+  /* Display: My Recurring Orders */
+  $handler = $view->new_display('page', 'My Recurring Orders', 'page_2');
+  $handler->display->display_options['defaults']['title'] = FALSE;
+  $handler->display->display_options['title'] = 'My Recurring Orders';
+  $handler->display->display_options['defaults']['empty'] = FALSE;
+  /* No results behavior: Global: Text area */
+  $handler->display->display_options['empty']['area']['id'] = 'area';
+  $handler->display->display_options['empty']['area']['table'] = 'views';
+  $handler->display->display_options['empty']['area']['field'] = 'area';
+  $handler->display->display_options['empty']['area']['empty'] = TRUE;
+  $handler->display->display_options['empty']['area']['content'] = 'You currently do not have any recurring orders.';
+  $handler->display->display_options['empty']['area']['format'] = 'plain_text';
+  $handler->display->display_options['defaults']['fields'] = FALSE;
+  /* Field: Commerce License Billing Cycle: Billing cycle ID */
+  $handler->display->display_options['fields']['billing_cycle_id']['id'] = 'billing_cycle_id';
+  $handler->display->display_options['fields']['billing_cycle_id']['table'] = 'cl_billing_cycle';
+  $handler->display->display_options['fields']['billing_cycle_id']['field'] = 'billing_cycle_id';
+  $handler->display->display_options['fields']['billing_cycle_id']['relationship'] = 'cl_billing_cycle_target_id';
+  $handler->display->display_options['fields']['billing_cycle_id']['label'] = '';
+  $handler->display->display_options['fields']['billing_cycle_id']['exclude'] = TRUE;
+  $handler->display->display_options['fields']['billing_cycle_id']['element_label_colon'] = FALSE;
+  $handler->display->display_options['fields']['billing_cycle_id']['separator'] = '';
+  /* Field: Commerce License Billing Cycle: Owner uid */
+  $handler->display->display_options['fields']['owner']['id'] = 'owner';
+  $handler->display->display_options['fields']['owner']['table'] = 'cl_billing_cycle';
+  $handler->display->display_options['fields']['owner']['field'] = 'owner';
+  $handler->display->display_options['fields']['owner']['relationship'] = 'cl_billing_cycle_target_id';
+  $handler->display->display_options['fields']['owner']['label'] = '';
+  $handler->display->display_options['fields']['owner']['exclude'] = TRUE;
+  $handler->display->display_options['fields']['owner']['element_label_colon'] = FALSE;
+  $handler->display->display_options['fields']['owner']['separator'] = '';
+  /* Field: Commerce Line Item: Title */
+  $handler->display->display_options['fields']['line_item_title']['id'] = 'line_item_title';
+  $handler->display->display_options['fields']['line_item_title']['table'] = 'commerce_line_item';
+  $handler->display->display_options['fields']['line_item_title']['field'] = 'line_item_title';
+  $handler->display->display_options['fields']['line_item_title']['relationship'] = 'commerce_line_items_line_item_id';
+  $handler->display->display_options['fields']['line_item_title']['label'] = 'Item';
+  /* Field: Commerce Order: Order total */
+  $handler->display->display_options['fields']['commerce_order_total']['id'] = 'commerce_order_total';
+  $handler->display->display_options['fields']['commerce_order_total']['table'] = 'field_data_commerce_order_total';
+  $handler->display->display_options['fields']['commerce_order_total']['field'] = 'commerce_order_total';
+  $handler->display->display_options['fields']['commerce_order_total']['label'] = 'Total';
+  $handler->display->display_options['fields']['commerce_order_total']['click_sort_column'] = 'amount';
+  $handler->display->display_options['fields']['commerce_order_total']['settings'] = array(
+    'calculation' => FALSE,
+  );
+  /* Field: Commerce License Billing Cycle: End */
+  $handler->display->display_options['fields']['end']['id'] = 'end';
+  $handler->display->display_options['fields']['end']['table'] = 'cl_billing_cycle';
+  $handler->display->display_options['fields']['end']['field'] = 'end';
+  $handler->display->display_options['fields']['end']['relationship'] = 'cl_billing_cycle_target_id';
+  $handler->display->display_options['fields']['end']['label'] = 'Renews';
+  $handler->display->display_options['fields']['end']['date_format'] = 'short';
+  $handler->display->display_options['fields']['end']['second_date_format'] = 'long';
+  /* Field: Commerce Card on File: Card Status */
+  $handler->display->display_options['fields']['status_3']['id'] = 'status_3';
+  $handler->display->display_options['fields']['status_3']['table'] = 'commerce_cardonfile';
+  $handler->display->display_options['fields']['status_3']['field'] = 'status';
+  $handler->display->display_options['fields']['status_3']['relationship'] = 'commerce_cardonfile';
+  $handler->display->display_options['fields']['status_3']['label'] = 'Payment Method';
+  $handler->display->display_options['fields']['status_3']['empty'] = '<strong style="color:red">Bad Card</strong>';
+  /* Field: Global: Custom text */
+  $handler->display->display_options['fields']['nothing']['id'] = 'nothing';
+  $handler->display->display_options['fields']['nothing']['table'] = 'views';
+  $handler->display->display_options['fields']['nothing']['field'] = 'nothing';
+  $handler->display->display_options['fields']['nothing']['label'] = 'Options';
+  $handler->display->display_options['fields']['nothing']['alter']['text'] = 'Cancel';
+  $handler->display->display_options['fields']['nothing']['alter']['make_link'] = TRUE;
+  $handler->display->display_options['fields']['nothing']['alter']['path'] = 'user/[owner]/recurring-orders/cancel/[billing_cycle_id]';
+  $handler->display->display_options['defaults']['arguments'] = FALSE;
+  /* Contextual filter: Commerce License Billing Cycle: Owner uid */
+  $handler->display->display_options['arguments']['owner']['id'] = 'owner';
+  $handler->display->display_options['arguments']['owner']['table'] = 'cl_billing_cycle';
+  $handler->display->display_options['arguments']['owner']['field'] = 'owner';
+  $handler->display->display_options['arguments']['owner']['relationship'] = 'cl_billing_cycle_target_id';
+  $handler->display->display_options['arguments']['owner']['default_action'] = 'default';
+  $handler->display->display_options['arguments']['owner']['default_argument_type'] = 'user';
+  $handler->display->display_options['arguments']['owner']['default_argument_options']['user'] = FALSE;
+  $handler->display->display_options['arguments']['owner']['summary']['number_of_records'] = '0';
+  $handler->display->display_options['arguments']['owner']['summary']['format'] = 'default_summary';
+  $handler->display->display_options['arguments']['owner']['summary_options']['items_per_page'] = '25';
+  $handler->display->display_options['arguments']['owner']['specify_validation'] = TRUE;
+  $handler->display->display_options['arguments']['owner']['validate']['type'] = 'current_user_or_role';
+  $handler->display->display_options['arguments']['owner']['validate_options']['restrict_roles'] = TRUE;
+  $handler->display->display_options['arguments']['owner']['validate_options']['roles'] = array(
+    3 => '3',
+  );
+  $handler->display->display_options['defaults']['filter_groups'] = FALSE;
+  $handler->display->display_options['defaults']['filters'] = FALSE;
+  /* Filter criterion: Commerce License Billing Cycle: Status */
+  $handler->display->display_options['filters']['status']['id'] = 'status';
+  $handler->display->display_options['filters']['status']['table'] = 'cl_billing_cycle';
+  $handler->display->display_options['filters']['status']['field'] = 'status';
+  $handler->display->display_options['filters']['status']['relationship'] = 'cl_billing_cycle_target_id';
+  $handler->display->display_options['filters']['status']['value'] = '1';
+  $handler->display->display_options['path'] = 'user/%/recurring-orders';
+  $handler->display->display_options['menu']['type'] = 'tab';
+  $handler->display->display_options['menu']['title'] = 'Recurring Orders';
+  $handler->display->display_options['menu']['weight'] = '10';
+  $handler->display->display_options['menu']['context'] = 0;
+  $handler->display->display_options['menu']['context_only_inline'] = 0;
   $translatables['blueoi_commerce_recurring_orders'] = array(
     t('Master'),
     t('Recurring Order Management'),
@@ -418,6 +520,12 @@ function blueoi_commerce_recurring_views_default_views() {
     t('Card Status'),
     t('<strong style="color:red">Bad Card</strong>'),
     t('Displaying @start - @end of @total Total Recurring Orders'),
+    t('My Recurring Orders'),
+    t('You currently do not have any recurring orders.'),
+    t('Payment Method'),
+    t('Options'),
+    t('Cancel'),
+    t('All'),
   );
 
   $views['blueoi_commerce_recurring_orders'] = $view;
@@ -432,5 +540,9 @@ function blueoi_commerce_recurring_views_default_views_alter(&$views) {
   // Alter the user orders view to exclude recurring orders.
   if (!empty($views['commerce_user_orders'])) {
     $views['commerce_user_orders']->display['default']->display_options['filters']['state']['value']['recurring'] = 'recurring';
+  }
+
+  if (!empty($views['commerce_orders'])) {
+    $views['commerce_orders']->display['default']->display_options['filters']['state']['value']['recurring'] = 'recurring';
   }
 }
