@@ -1,10 +1,8 @@
 # About this module
-This modules provides overrides and improvements to recurring order sites, 
-such as those that used commerce_license_billing.
+This modules provides overrides and improvements to recurring order sites that are using Commerce License Billing.
 
 # Charging credit cards
-Included are default rules configs and alters that prevent credit card charges
-from being fired on non-production environments. 
+Included are default rules configs and alterations that prevent credit card charges from being fired on non-production environments. 
   
 Set the following site variables to match your production environment/server variables.
 
