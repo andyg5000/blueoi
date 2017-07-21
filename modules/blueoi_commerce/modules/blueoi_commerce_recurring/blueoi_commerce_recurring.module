@@ -81,6 +81,7 @@ function blueoi_commerce_recurring_cancel_billing_cycle_form_submit($form, &$for
   $cl_billing_cycle = entity_load_single('cl_billing_cycle', $form_state['billing_cycle_id']);
   blueoi_commerce_recurring_set_recurring_status($form_state['billing_cycle_id'], FALSE);
   drupal_set_message(t('The recurring order has been canceled.'));
+  rules_invoke_event('blueoi_commerce_recurring_cl_billing_cycle_canceled', $cl_billing_cycle);
   $form_state['redirect'] = 'user/' . $cl_billing_cycle->uid . '/recurring-orders';
 }
 
