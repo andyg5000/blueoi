@@ -123,7 +123,7 @@ function blueoi_performance_checklistapi_checklist_info() {
       ),
       'configure_user_path' => array(
         '#title' => t('Create /user path page rule.'),
-        '#description' => t('<p><strong>If the url matches:</strong> example.com/user*</p><p><strong>Then the settings are:</strong></p><ul><li>Security Level: High</li></ul>'),
+        '#description' => t('<p><strong>If the url matches:</strong> https://www.example.com/user*</p><p><strong>Then the settings are:</strong></p><ul><li>Security Level: High</li></ul>'),
         'project_page' => array(
           '#text' => t('Configure'),
           '#path' => 'https://www.cloudflare.com/',
@@ -131,7 +131,7 @@ function blueoi_performance_checklistapi_checklist_info() {
       ),
       'configure_node_path' => array(
         '#title' => t('Create /node path page rule.'),
-        '#description' => t('<p><strong>If the url matches:</strong> example.com/node*/edit*</p><p><strong>Then the settings are:</strong></p><ul><li>Security Level: High</li><li>Cache Level: Bypass</li><li>Disable Apps</li><li>Disable Performance</li></ul>'),
+        '#description' => t('<p><strong>If the url matches:</strong> https://www.example.com/node*/edit*</p><p><strong>Then the settings are:</strong></p><ul><li>Security Level: High</li><li>Cache Level: Bypass</li><li>Disable Apps</li><li>Disable Performance</li></ul>'),
         'project_page' => array(
           '#text' => t('Configure'),
           '#path' => 'https://www.cloudflare.com/',
@@ -139,7 +139,7 @@ function blueoi_performance_checklistapi_checklist_info() {
       ),
       'configure_admin_path' => array(
         '#title' => t('Create /admin path page rule.'),
-        '#description' => t('<p><strong>If the url matches:</strong> example.com/admin*</p><p><strong>Then the settings are:</strong></p><ul><li>Browser Cache TTL: 4 hours</li><li>Security Level: High</li><li>Cache Level: Bypass</li><li>Disable Apps</li><li>Disable Performance</li></ul>'),
+        '#description' => t('<p><strong>If the url matches:</strong> https://www.example.com/admin*</p><p><strong>Then the settings are:</strong></p><ul><li>Browser Cache TTL: 4 hours</li><li>Security Level: High</li><li>Cache Level: Bypass</li><li>Disable Apps</li><li>Disable Performance</li></ul>'),
         'project_page' => array(
           '#text' => t('Configure'),
           '#path' => 'https://www.cloudflare.com/',
@@ -147,7 +147,7 @@ function blueoi_performance_checklistapi_checklist_info() {
       ),
       'configure_cron_path' => array(
         '#title' => t('Create /cron path page rule.'),
-        '#description' => t('<p><strong>If the url matches:</strong> example.com/cron*</p><p><strong>Then the settings are:</strong></p><ul><li>Cache Level: Bypass</li></ul>'),
+        '#description' => t('<p><strong>If the url matches:</strong> https://www.example.com/cron*</p><p><strong>Then the settings are:</strong></p><ul><li>Cache Level: Bypass</li></ul>'),
         'project_page' => array(
           '#text' => t('Configure'),
           '#path' => 'https://www.cloudflare.com/',
@@ -155,7 +155,7 @@ function blueoi_performance_checklistapi_checklist_info() {
       ),
       'configure_files_path' => array(
         '#title' => t('Create /sites/default/files path page rule.'),
-        '#description' => t('<p><strong>If the url matches:</strong> example.com/sites/default/files*</p><p><strong>Then the settings are:</strong></p><ul><li>Browser Cache TTL: 5 days</li><li>Cache Level: Cache Everything</li><li>Edge Cache TTL: 7 days</li></ul>'),
+        '#description' => t('<p><strong>If the url matches:</strong> https://www.example.com/sites/default/files*</p><p><strong>Then the settings are:</strong></p><ul><li>Browser Cache TTL: 5 days</li><li>Cache Level: Cache Everything</li><li>Edge Cache TTL: 7 days</li></ul>'),
         'project_page' => array(
           '#text' => t('Configure'),
           '#path' => 'https://www.cloudflare.com/',
