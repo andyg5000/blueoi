@@ -163,7 +163,29 @@ function blueoi_performance_checklistapi_checklist_info() {
       ),
     ),
 
+    // Test configuration.
+    'test' => array(
+      '#title' => t('Test Your Configuration'),
+      '#description' => t("<p>Great! Now that your configuration is complete it's time to see what the results are.</p>"),
+      'test_testmysite' => array(
+        '#title' => t('Google: Test My Website'),
+        '#description' => t('<p>Most sites lose half their visitors while loading. Test your mobile speed.</p>'),
+        'project_page' => array(
+          '#text' => t('Learn More'),
+          '#path' => 'https://testmysite.thinkwithgoogle.com/',
+        ),
+      ),
+      'test_insights' => array(
+        '#title' => t('Google: PageSpeed Insights'),
+        '#description' => t('<p>Make your web pages fast on all devices Scan your website now.</p>'),
+        'project_page' => array(
+          '#text' => t('Learn More'),
+          '#path' => 'https://developers.google.com/speed/pagespeed/insights/',
+        ),
+      ),
+    ),
   );
+
   return $definitions;
 }
 
