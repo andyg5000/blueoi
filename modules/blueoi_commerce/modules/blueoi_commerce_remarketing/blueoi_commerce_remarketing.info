@@ -1,0 +1,4 @@
+name = BlueOI Remarketing
+description = Provides remarketing tags for Drupal Commerce
+core = 7.x
+package = BlueOI
