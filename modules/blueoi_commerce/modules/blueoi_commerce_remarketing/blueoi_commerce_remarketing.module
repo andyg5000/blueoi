@@ -141,7 +141,7 @@ function blueoi_commerce_remarketing_set_tag($values = array()) {
  */
 function blueoi_commerce_remarketing_get_page_type() {
   // Allow other module to define the page type first.
-  drupal_alter('blueoi_commerce_remarketing_get_page_type_alter', $page_type = '');
+  drupal_alter('blueoi_commerce_remarketing_get_page_type', $page_type = '');
   if (!empty($page_type)) {
     return $page_type;
   }
