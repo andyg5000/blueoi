@@ -1,0 +1,3 @@
+name = BlueOI Privacy
+description = Provides privacy opt-in features
+core = 7.x

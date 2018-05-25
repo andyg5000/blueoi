@@ -1,0 +1,210 @@
+<?php
+
+/**
+ * @file
+ * Provides privacy opt-in features.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function blueoi_privacy_menu() {
+  $items = array();
+  $items['user/%user/opt-in'] = array(
+    'title' => 'Conditions for use',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('blueoi_privacy_optin_form'),
+    'access callback' => 'user_is_logged_in',
+    'menu type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_page_init().
+ */
+function blueoi_privacy_page_init(&$page) {
+  // Run the check on non-cached pages during init.
+  blueoi_privacy_check_optin();
+}
+
+
+/**
+ * Implements hook_page_build().
+ */
+function blueoi_privacy_page_build(&$page) {
+  // Run the check on pages implementing page build
+  // when init doesn't fire.
+  blueoi_privacy_check_optin();
+}
+
+/**
+ * Verifies that the user has opted-in to privacy policies.
+ */
+function blueoi_privacy_check_optin() {
+  global $user;
+  global $base_url;
+
+  $ignore_urls = array(
+    'user/logout',
+    'user/' . $user->uid . '/opt-in',
+  );
+
+  // If the user is logged in and accessing a url that is not ignored
+  // by the check.
+  if (!empty($user->uid) && !in_array(implode('/', arg()), $ignore_urls)) {
+    // Maintain a static cache to prevent this from firing multiple times.
+    $check = &drupal_static(__FUNCTION__);
+    if (empty($checked)) {
+
+      // Query the field for a TRUE value.
+      $query = db_query('SELECT field_agree_to_terms_conditions_value FROM {field_revision_field_agree_to_terms_conditions} WHERE entity_id = :uid AND entity_type = :user', array(':uid' => $user->uid, ':user' => 'user'));
+      $accepted = reset($query->fetchCol(0));
+      $checked = TRUE;
+
+      // If they've not accepted the policy, redirect them to it.
+      if (empty($accepted)) {
+        drupal_goto('/user/' . $user->uid . '/opt-in');
+      }
+    }
+  }
+}
+
+/**
+ * Opt-in form callback.
+ * @param $form
+ * @param $form_state
+ * @return array
+ */
+function blueoi_privacy_optin_form($form, $form_state) {
+  $form = array();
+  $form['privacy-policy'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('@site policies and conditions for use.', array('@site' => variable_get('site_name'), '')),
+  );
+  $form['privacy-policy']['optin-description'] = array(
+    '#markup' => '<div class="blueoi-privacy-description">' . variable_get('blueoi_privacy_optin_description', t('In order to continue to login as a User or Contributor you are required to confirm that you agree to our Privacy Policy and our Terms and Conditions.')) . '</div>',
+  );
+  $form['privacy-policy']['actions'] = array(
+    '#type' => 'container',
+  );
+  $form['privacy-policy']['actions']['deny'] = array(
+    '#type' => 'submit',
+    '#value' => t('Decline and Sign Out'),
+    '#submit' => array('blueoi_privacy_optin_in_form_deny'),
+  );
+  $form['privacy-policy']['actions']['accept'] = array(
+    '#type' => 'submit',
+    '#value' => t('Agree and continue'),
+    '#submit' => array('blueoi_privacy_optin_in_form_accept'),
+  );
+  return $form;
+}
+
+/**
+ * Deny callback for privacy opt-in form.
+ * @param $form
+ * @param $form_state
+ */
+function blueoi_privacy_optin_in_form_deny($form, &$form_state){
+  drupal_set_message(t('You have chosen to deny the site policies and have been logged out'), 'warning');
+  module_load_include('inc', 'user', 'user.pages');
+  user_logout();
+}
+
+/**
+ * Accept callback for privacy opt-in form.
+ * @param $form
+ * @param $form_state
+ */
+function blueoi_privacy_optin_in_form_accept($form, $form_state){
+  global $user;
+  $account = user_load($user->uid);
+  $account->field_agree_to_terms_conditions['und'][0]['value'] = TRUE;
+  try {
+    user_save($account);
+    drupal_set_message(t('You have accepted our site policies and have been logged in.'));
+    drupal_goto('user');
+  }
+  catch (Exception $ex) {
+    watchdog('error', 'Unable to set the terms and conditions field to accepted.');
+  }
+}
+
+/**
+ * Implements hook_user_login().
+ */
+function blueoi_privacy_user_login(&$edit, $account) {
+  if (empty($account->field_agree_to_terms_conditions)) {
+    drupal_goto('/user/opt-in');
+  }
+}
+
+/**
+ * * Defines the privacy opt-in field.
+ *
+ * @return array
+ */
+function blueoi_privacy_opt_in_field_info() {
+  $field = array(
+    'settings' => array(
+      'allowed_values' => array(
+        0 => '',
+        1 => '',
+      ),
+      'allowed_values_function' => '',
+    ),
+    'storage' => array(
+      'type' => 'field_sql_storage',
+      'settings' => array(),
+      'module' => 'field_sql_storage',
+      'active' => '1',
+    ),
+    'field_name' => 'field_agree_to_terms_conditions',
+    'type' => 'list_boolean',
+    'module' => 'list',
+    'active' => '1',
+    'locked' => '0',
+    'cardinality' => '1',
+    'deleted' => '0',
+    'bundles' => array(
+      'user' => array(
+        0 => 'user',
+      ),
+    ),
+  );
+  return $field;
+}
+
+/**
+ * Defines the privacy opt-in instance for user entities.
+ *
+ * @return array
+ */
+function blueoi_privacy_opt_in_field_instance() {
+  $instance = array(
+    'label' => 'Agree to Terms & Conditions',
+    'widget' => array(
+      'type' => 'options_onoff',
+      'module' => 'options',
+      'active' => 1,
+      'settings' => array(
+        'display_label' => 1,
+      ),
+    ),
+    'settings' => array(
+      'user_register_form' => 1,
+    ),
+    'required' => 1,
+    'description' => 'In order to continue to login as a User or Contributor you are required to confirm that you agree to our Privacy Policy and our Terms and Conditions.',
+    'default_value' => array(
+      0 => array(
+        'value' => 0,
+      ),
+    ),
+    'field_name' => 'field_agree_to_terms_conditions',
+    'entity_type' => 'user',
+    'bundle' => 'user',
+  );
+  return $instance;
+}
