@@ -17,6 +17,14 @@ function blueoi_privacy_menu() {
     'access callback' => 'user_is_logged_in',
     'menu type' => MENU_CALLBACK,
   );
+  $items['admin/config/people/blueoi-privacy'] = array(
+    'title' => 'Privacy settings',
+    'description' => 'Manage your sites opt-in policies.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('blueoi_privacy_config_optin_form'),
+    'access arguments' => array('administer site configuration'),
+    'weight' => 10,
+  );
   return $items;
 }
 
@@ -36,6 +44,19 @@ function blueoi_privacy_page_build(&$page) {
   // Run the check on pages implementing page build
   // when init doesn't fire.
   blueoi_privacy_check_optin();
+}
+
+/**
+ * System settings form for opt-in.
+ */
+function blueoi_privacy_config_optin_form($form, &$form_state) {
+  $form['blueoi_privacy_optin_description'] = array(
+    '#type' => 'textarea',
+    '#default_value' => variable_get('blueoi_privacy_optin_description', t('In order to continue to login as a User or Contributor you are required to confirm that you agree to our Privacy Policy and our Terms and Conditions.')),
+    '#description' => t('Set the text that your users must agree to to use the site as an authenticated user.'),
+    '#rows' => 8,
+  );
+  return system_settings_form($form);
 }
 
 /**
