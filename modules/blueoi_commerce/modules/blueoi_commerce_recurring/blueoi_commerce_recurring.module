@@ -1,0 +1,238 @@
+<?php
+
+/**
+ * @file
+ * Provides settings and overrides for sites with commerce_license_billing.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function blueoi_commerce_recurring_menu() {
+  $items = array();
+
+  $items['user/%user/recurring-orders/cancel/%entity_object'] = array(
+    'title' => 'Cancel recurring order',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('blueoi_commerce_recurring_cancel_billing_cycle_form', 4),
+    'access callback' => 'blueoi_commerce_recurring_cancel_billing_cycle_access',
+    'access arguments' => array(4),
+    'load arguments' => array('cl_billing_cycle'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function blueoi_commerce_recurring_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'blueoi_commerce_recurring') . '/includes/views',
+  );
+}
+
+/**
+ * Access callback for canceling a recurring order.
+ *
+ * @param $cl_billing_cycle
+ *   A commerce license billing cycle object.
+ * @return bool
+ *   TRUE if the user has access.
+ */
+function blueoi_commerce_recurring_cancel_billing_cycle_access($cl_billing_cycle) {
+  global $user;
+
+  // Only allow users to cancel active billing cycles.
+  if ($cl_billing_cycle->status != 1) {
+    return FALSE;
+  }
+
+  // Allow the billing cycle owner to cancel.
+  if ($cl_billing_cycle->uid == $user->uid) {
+    return TRUE;
+  }
+
+  return user_access('administer commerce_order entities');
+}
+
+/**
+ * Form callback to cancel billing cycle entities.
+ */
+function blueoi_commerce_recurring_cancel_billing_cycle_form($form, &$form_state, $cl_billing_cycle) {
+  $form_state['billing_cycle_id'] = $cl_billing_cycle->billing_cycle_id;
+
+  return confirm_form(
+    $form,
+    t('Are you sure you want to cancel this recurring order?'),
+    'user/' . $cl_billing_cycle->uid . '/recurring-orders',
+    t('Click yes to cancel your recurring order or no to return to your active recurring orders'),
+    t('Yes, cancel this recurring order'),
+    t('No, keep this recurring order')
+  );
+}
+
+/**
+ * Form submit callback to cancel a recurring order.
+ */
+function blueoi_commerce_recurring_cancel_billing_cycle_form_submit($form, &$form_state) {
+  $cl_billing_cycle = entity_load_single('cl_billing_cycle', $form_state['billing_cycle_id']);
+  blueoi_commerce_recurring_set_recurring_status($form_state['billing_cycle_id'], FALSE);
+  drupal_set_message(t('The recurring order has been canceled.'));
+  rules_invoke_event('blueoi_commerce_recurring_cl_billing_cycle_canceled', $cl_billing_cycle);
+  $form_state['redirect'] = 'user/' . $cl_billing_cycle->uid . '/recurring-orders';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function blueoi_commerce_recurring_form_commerce_order_ui_order_form_alter(&$form, &$form_state, $form_id) {
+  // Do not allow store admins to select the payment pending status
+  // to prevent accidental charging of orders.
+  unset($form['order_status']['status']['#options']['Recurring order']['recurring_payment_pending']);
+}
+
+/**
+ * Sets the end date on all entities related to a billing cycle.
+ *
+ * @param $billing_cycle_id
+ * @param $date integer
+ */
+function blueoi_commerce_recurring_update_billing_cycle_date($billing_cycle_id, $date) {
+  $entities = blueoi_commerce_recurring_load_entities_from_cycle($billing_cycle_id);
+
+  // Update the billing cycle end date.
+  if (!empty($entities['cl_billing_cycle'])) {
+    $entities['cl_billing_cycle']->end = $date;
+    entity_save('cl_billing_cycle', $entities['cl_billing_cycle']);
+  }
+
+  // Update the license billing end date on line items.
+  if (!empty($entities['next_order']->commerce_line_items)) {
+    $wrapper = entity_metadata_wrapper('commerce_order', $entities['next_order']);
+    foreach ($wrapper->commerce_line_items->value() as $line_item) {
+      if ($line_item->type == 'recurring') {
+        $line_item->cl_billing_end[LANGUAGE_NONE][0]['value'] = date("Y-m-d H:i:s", $date);
+        commerce_line_item_save($line_item);
+      }
+    }
+  }
+
+  // Update the license expiration date.
+  if (!empty($entities['commerce_license'])) {
+    $entities['commerce_license']->expires = $date;
+    entity_save('commerce_license', $entities['commerce_license']);
+  }
+}
+
+/**
+ * Update the status of all billing cycle entities.
+ * @param $billing_cycle_id
+ * @param $status boolean
+ */
+function blueoi_commerce_recurring_set_recurring_status($billing_cycle_id, $status) {
+  $entities = blueoi_commerce_recurring_load_entities_from_cycle($billing_cycle_id);
+
+  // Update the license expiration date.
+  // Update the license first because an active license is required to
+  // auto generate any new billing cycles.
+  if (!empty($entities['commerce_license'])) {
+    $entities['commerce_license']->status = !empty($status) ? COMMERCE_LICENSE_ACTIVE : COMMERCE_LICENSE_REVOKED;
+    entity_save('commerce_license', $entities['commerce_license']);
+  }
+
+  // Update the billing cycle status.
+  if (!empty($entities['cl_billing_cycle'])) {
+    $entities['cl_billing_cycle']->status = $status;
+    entity_save('cl_billing_cycle', $entities['cl_billing_cycle']);
+  }
+
+  // Handle updating the next order status appropriately.
+  if (!empty($entities['next_order'])) {
+    $entities['next_order']->status = !empty($status) ? 'recurring_open' : 'canceled';
+    entity_save('commerce_order', $entities['next_order']);
+  }
+}
+
+/**
+ * Fetch all of the entities associated with a billing cycle.
+ *
+ * @param $billing_cycle_id
+ *   A billing cycle id.
+ *
+ *
+ * @return array
+ *   An array of items associated with the billing cycle in the format
+ *   [
+ *     'cl_billing_cycle' => stdObject, // Billing Cycle Entity.
+ *     'commerce_licenses' => stdObject, // Associated License.
+ *     'next_order' => stdObject, // Next Billing Cycle Order.
+ *     'original_order' => stdObject, // Original Order.
+ *   ]
+ */
+function blueoi_commerce_recurring_load_entities_from_cycle($billing_cycle_id) {
+  $cl_billing_wrapper = entity_metadata_wrapper('cl_billing_cycle', $billing_cycle_id);
+  $return = array(
+    'cl_billing_cycle' => $cl_billing_wrapper->value(),
+    'next_order' => reset(blueoi_commerce_orders_from_billing_cycle($billing_cycle_id)),
+  );
+  $return['commerce_license'] = reset(blueoi_commerce_recurring_license_from_order($return['next_order']));
+  $return['original_order'] = blueoi_commerce_recurring_original_license_order($return['commerce_license']->license_id);
+  return $return;
+}
+
+/**
+ * Fetch licenses associated with an order.
+ *
+ * @param $order
+ * @return array
+ */
+function blueoi_commerce_recurring_license_from_order($order) {
+  $licenses = array();
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  foreach ($order_wrapper->commerce_line_items as $line_item_wrapper) {
+    if ($line_item_wrapper->value()->type == 'recurring') {
+      $license = $line_item_wrapper->cl_billing_license->value();
+      $licenses[$license->license_id] = $license;
+    }
+  }
+  return $licenses;
+}
+
+/**
+ * Fetch orders from a billing cycle.
+ *
+ * @param $billing_cycle_id
+ * @return array
+ */
+function blueoi_commerce_orders_from_billing_cycle($billing_cycle_id) {
+  $orders = array();
+  $query = new EntityFieldQuery();
+  $results = $query->entityCondition('entity_type', 'commerce_order')
+    ->fieldCondition('cl_billing_cycle', 'target_id', $billing_cycle_id)
+    ->execute();
+  if (!empty($results['commerce_order'])) {
+    $orders = entity_load('commerce_order', array_keys($results['commerce_order']));
+  }
+  return $orders;
+}
+
+/**
+ * Load the original order associated with a license.
+ *
+ * @param $license_id
+ * @return bool
+ */
+function blueoi_commerce_recurring_original_license_order($license_id) {
+  $query = new EntityFieldQuery();
+  $results = $query->entityCondition('entity_type', 'commerce_line_item')
+    ->fieldCondition('commerce_license', 'target_id', $license_id)
+    ->execute();
+  if (!empty($results['commerce_line_item'])) {
+    $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', reset($results['commerce_line_item'])->line_item_id);
+    return $line_item_wrapper->order->value();
+  }
+  return FALSE;
+}

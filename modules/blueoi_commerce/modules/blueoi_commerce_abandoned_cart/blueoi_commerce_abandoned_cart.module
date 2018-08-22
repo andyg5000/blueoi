@@ -1,0 +1,84 @@
+<?php
+
+/**
+ * @file
+ * Provides abandoned cart notifications for Drupal Commerce.
+ */
+
+/**
+ * Implements hook_flush_caches().
+ */
+function blueoi_commerce_abandoned_cart_flush_caches() {
+  blueoi_commerce_abandoned_cart_create_fields();
+}
+
+/**
+ * Helper function to create required fields for this module.
+ */
+function blueoi_commerce_abandoned_cart_create_fields() {
+  field_cache_clear();
+
+  // Create the message order reference field instance.
+  $instance = field_info_instance('message', 'blueoi_message_order_ref', 'blueoi_commerce_abandoned_cart');
+  if (empty($instance)) {
+    $instance = array(
+      'label' => 'Message Order',
+      'widget' => array(
+        'weight' => '1',
+        'type' => 'entityreference_autocomplete',
+        'module' => 'entityreference',
+        'active' => 1,
+        'settings' => array(
+          'match_operator' => 'CONTAINS',
+          'size' => '60',
+          'path' => '',
+        ),
+      ),
+      'settings' => array(
+        'user_register_form' => FALSE,
+      ),
+      'required' => 0,
+      'description' => '',
+      'default_value' => NULL,
+      'field_name' => 'blueoi_message_order_ref',
+      'entity_type' => 'message',
+      'bundle' => 'blueoi_commerce_abandoned_cart',
+    );
+    field_create_instance($instance);
+  }
+}
+
+/**
+ * Implements hook_default_message_type().
+ */
+function blueoi_commerce_abandoned_cart_default_message_type() {
+  $items = array();
+  $items['blueoi_commerce_abandoned_cart'] = entity_import('message_type', '{
+    "name" : "blueoi_commerce_abandoned_cart",
+    "description" : "Abandoned Cart Notification",
+    "argument_keys" : [],
+    "argument" : [],
+    "category" : "message_type",
+    "data" : {
+      "token options" : { "clear" : 1 },
+      "purge" : { "override" : 0, "enabled" : 0, "quota" : "", "days" : "" }
+    },
+    "language" : "",
+    "arguments" : null,
+    "message_text" : { "und" : [
+        {
+          "value" : "Your cart is about to expire on [site:name]",
+          "format" : "html_email",
+          "safe_value" : " \n\n\u003Cmeta http-equiv=\u0022Content-Type\u0022 content=\u0022text\/html; charset=utf-8\u0022 \/\u003E\u003Cp\u003EYour cart is about to expire on [site:name]\u003C\/p\u003E\n\n "
+        },
+        {
+          "value" : "\u003Ch1\u003EAre You Sure You Want to Leave This Behind?\u003C\/h1\u003E\r\n\r\n\u003Cp\u003EYour cart is about to expire, but we saved all of the great products you\u0027ve added. So when you\u0027re ready to buy, simply \u003Ca href=\u0022[site:url]cart\/receive\/[message:blueoi-message-order-ref:order-id]\u0022\u003EComplete your purchase\u003C\/a\u003E.\u003C\/p\u003E\r\n\r\n\u003Cem\u003EIf you have any questions, don\u0027t hesitate to reply to this email.\u003C\/em\u003E",
+          "format" : "html_email",
+          "safe_value" : " \n\n\u003Cmeta http-equiv=\u0022Content-Type\u0022 content=\u0022text\/html; charset=utf-8\u0022 \/\u003E\u003Ch1\u003EAre You Sure You Want to Leave This Behind?\u003C\/h1\u003E\n\n\u003Cp\u003EYour cart is about to expire, but we saved all of the great products you\u0027ve added. So when you\u0027re ready to buy, simply \u003Ca href=\u0022%5Bsite:url%5Dcart\/receive\/%5Bmessage:blueoi-message-order-ref:order-id%5D\u0022\u003EComplete your purchase\u003C\/a\u003E.\u003C\/p\u003E\n\n\u003Cem\u003EIf you have any questions, don\u0027t hesitate to reply to this email.\u003C\/em\u003E\n\n\n "
+        }
+      ]
+    },
+    "rdf_mapping" : []
+  }');
+  return $items;
+}

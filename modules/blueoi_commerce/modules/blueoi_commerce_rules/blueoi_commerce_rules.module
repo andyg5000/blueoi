@@ -1,0 +1,63 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+/**
+ * Determines if an order for a user containing SKU(s) exists.
+ *
+ * @param $user
+ *   A Drupal user object.
+ * @param $skus
+ *   A string of sku's as an array or optionally separated by \r\n.
+ * @param $include_cart
+ *  Include cart/checkout statuses in results.
+ * @param $exclude_id
+ *  Optionally exclude an order id.
+ *
+ * @return integer
+ *  The number of matching records.
+ */
+function blueoi_commerce_rules_owner_has_purchased_skus($user, $skus, $include_cart, $exclude_id = 0) {
+  if (is_string($skus)) {
+    $skus = strstr($skus, "\r\n") ? explode("\r\n", $skus) : array($skus);
+  }
+
+  // Define order statuses for query.
+  $cart = commerce_order_statuses(array('state' => 'cart'));
+  $checkout = commerce_order_statuses(array('state' => 'checkout'));
+  $pending = commerce_order_statuses(array('state' => 'pending'));
+  $completed = commerce_order_statuses(array('state' => 'completed'));
+
+  if ($include_cart) {
+    $statuses = array_keys(array_merge($cart, $checkout, $pending, $completed));
+  }
+  else {
+    $statuses = array_keys(array_merge($pending, $completed));
+  }
+
+  $query = db_select('field_data_commerce_product', 'fdcp')
+    ->fields('fdcp', array('commerce_product_product_id'));
+  $query->join('commerce_product', 'cp', 'fdcp.commerce_product_product_id = cp.product_id');
+  $query->join('field_data_commerce_line_items', 'fdcli', 'fdcp.entity_id = fdcli.commerce_line_items_line_item_id');
+  $query->join('commerce_order', 'co', 'fdcli.entity_id = co.order_id');
+  $query->condition('cp.sku', $skus, 'IN');
+  $query->condition('co.uid', $user->uid);
+  $query->condition('co.status', $statuses, 'IN');
+
+  if (!empty($exclude_id)) {
+    $query->condition('co.order_id', $exclude_id, '!=');
+  }
+
+  try {
+    $results = $query->execute();
+  }
+  catch (Exception $ex) {
+    return FALSE;
+  }
+
+  // Return the number of records.
+  return $results->rowCount() > 0;
+}

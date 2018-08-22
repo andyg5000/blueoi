@@ -1,0 +1,259 @@
+<?php
+
+/**
+ * @file
+ * Provides the ability to clone commerce entities.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function blueoi_commerce_clone_menu() {
+  $items = array();
+  // Create a menu callback for cloning product displays.
+  $items['node/%node/boi-clone'] = array(
+    'title' => 'Clone',
+    'access callback' => 'blueoi_commerce_clone_node_access',
+    'access arguments' => array(1),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('blueoi_commerce_clone_node_form', 1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  return $items;
+}
+
+/**
+ * Access callback for cloning nodes.
+ */
+function blueoi_commerce_clone_node_access($node) {
+  global $user;
+
+  $product_display = FALSE;
+
+  // Make sure the node is a product display node.
+  $product_fields = blueoi_commerce_clone_product_fields();
+  foreach ($product_fields as $field_name) {
+    if (!empty($node->{$field_name})) {
+      $product_display = TRUE;
+    }
+  }
+
+  // Do not attempt to clone non-product displays.
+  if (empty($product_display)) {
+    return FALSE;
+  }
+
+  return user_access('administer nodes');
+}
+
+/**
+ * Form callback for cloning product display nodes and variants.
+ */
+function blueoi_commerce_clone_node_form($form, &$form_state, $node) {
+  $form_state['node'] = $node;
+  $form = array();
+  $product_fields = blueoi_commerce_clone_product_fields();
+  $node_wrapper = entity_metadata_wrapper('node', $node);
+
+  $form = array(
+    '#tree' => TRUE,
+  );
+
+  $form['node'] = array(
+    '#markup' => '<p>' . t('This will clone @title and all of the product variations associated with it.', array('@title' => $node->title)) . '</p>',
+  );
+
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('New Title'),
+    '#required' => TRUE,
+  );
+
+  $form['fields'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Select fields to copy'),
+  );
+
+  foreach (blueoi_commerce_clone_node_field_instances($node) as $instance) {
+    if (!in_array($instance['field_name'], $product_fields)) {
+      $form['fields'][$instance['field_name']] = array(
+        '#type' => 'checkbox',
+        '#title' => $instance['label'],
+        '#default_value' => isset($form_state['values']['fields'][$instance['field_name']]) ? $form_state['values']['fields'][$instance['field_name']] : TRUE,
+      );
+    }
+  }
+
+  $form['products'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Set new SKUs for cloned variations'),
+  );
+
+  // Create a text field for each product variation to set the new sku.
+  foreach ($product_fields as $product_field) {
+    if (!empty($node->{$product_field})) {
+      foreach ($node_wrapper->{$product_field}->value() as $product) {
+        $products[] = $product;
+        $product_select[$product->product_id] = $product->sku;
+        $form['products'][$product->product_id] = array(
+          '#type' => 'container',
+          '#attributes' => array(
+            'class' => array('container-inline'),
+          ),
+        );
+        $form['products'][$product->product_id]['sku'] = array(
+          '#type' => 'textfield',
+          '#title' => t('@sku => ', array('@sku' => $product->sku)),
+          '#description' => t('Enter the new sku or leave blank to skip'),
+          '#size' => 20,
+          '#default_value' => !empty($form_state['values']['products'][$product->product_id]['sku']) ? $form_state['values']['products'][$product->product_id]['sku'] : '',
+        );
+        $form['products'][$product->product_id]['value'] = array(
+          '#type' => 'value',
+          '#value' => $product->product_id,
+        );
+      }
+    }
+  }
+
+  $form['actions'] = array(
+    '#type' => 'container',
+  );
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Clone'),
+  );
+  $form['actions']['cancel'] = array(
+    '#type' => 'submit',
+    '#value' => t('Cancel'),
+  );
+  return $form;
+}
+
+/**
+ * Validation handler.
+ */
+function blueoi_commerce_clone_node_form_validate(&$form, &$form_state) {
+  // Make sure all new skus are unique.
+  foreach ($form_state['values']['products'] as $key => $product) {
+    if (!empty($product['sku'])) {
+      if (commerce_product_load_by_sku(trim($product['sku']))) {
+        form_set_error('products][' . $key . '][sku', t('SKU must be unique'));
+      }
+    }
+  }
+}
+
+/**
+ * Submit handler.
+ */
+function blueoi_commerce_clone_node_form_submit(&$form, &$form_state) {
+  // Create a clone of the original node.
+  $original_node = node_load($form_state['node']->nid);
+  $node = blueoi_commerce_clone_node_prepare($original_node);
+  $node_wrapper = entity_metadata_wrapper('node', $node);
+
+  // Set the new title.
+  $node->title = $form_state['values']['title'];
+
+  // Unset data that should not be cloned.
+  foreach ($form_state['values']['fields'] as $field_name => $field) {
+    if (empty($field)) {
+      unset($node->{$field_name});
+    }
+  }
+
+  // Loop through each product reference field and unset the original values.
+  $product_fields = blueoi_commerce_clone_product_fields();
+  foreach ($product_fields as $product_field) {
+    if (!empty($node->{$product_field})) {
+      // Save the field to save new products to.
+      $node_product_instance = $product_field;
+      unset($node->{$product_field});
+    }
+  }
+
+  // Loop through the submitted product SKUs and create new products.
+  $new_products = array();
+  foreach ($form_state['values']['products'] as $key => $product) {
+    if (!empty($product['sku'])) {
+      $original_product = commerce_product_load($product['value']);
+      $new_product = clone $original_product;
+      $new_product->sku = $product['sku'];
+      unset($new_product->product_id);
+      unset($new_product->revision_id);
+      unset($new_product->revision_uid);
+      $new_product->created = strtotime('now');
+      $new_product->changed = strtotime('now');
+      $new_product->is_new = TRUE;
+      commerce_product_save($new_product);
+      $new_products[] = $new_product;
+    }
+  }
+
+  // Add the new products to the product reference field.
+  if (!empty($new_products)) {
+    foreach ($new_products as $product) {
+      $node_wrapper->{$node_product_instance}[] = $product;
+    }
+  }
+
+  // Save the node and redirect to the new node page.
+  node_save($node);
+  $form_state['redirect'] = 'node/' . $node->nid . '/edit';
+}
+
+/**
+ * Helper function to prepare a new cloned node object.
+ */
+function blueoi_commerce_clone_node_prepare($original_node) {
+  global $user;
+  $node = clone $original_node;
+
+  $node->nid = NULL;
+  $node->vid = NULL;
+  $node->tnid = NULL;
+  $node->log = NULL;
+
+  // Also handle modules that attach a UUID to the node.
+  $node->uuid = NULL;
+  $node->vuuid = NULL;
+
+  // Anyonmymous users don't have a name.
+  // @see: drupal_anonymous_user().
+  $node->name = isset($user->name) ? $user->name : NULL;
+  $node->uid = $user->uid;
+
+  $node->created = NULL;
+  $node->path = NULL;
+
+  return $node;
+}
+
+/**
+ * Returns field instances that have values and are available on the node.
+ */
+function blueoi_commerce_clone_node_field_instances($node) {
+  $instances = field_info_instances('node', $node->type);
+  foreach ($instances as $key => $instance) {
+    if (empty($node->{$key})) {
+      unset($instances[$key]);
+    }
+  }
+  return $instances;
+}
+
+/**
+ * Returns all product reference field field names.
+ */
+function blueoi_commerce_clone_product_fields() {
+  $field_names = array();
+  $fields = field_info_fields();
+  foreach ($fields as $name => $field) {
+    if ($field['type'] == 'commerce_product_reference') {
+      $field_names[$name] = $name;
+    }
+  }
+  return $field_names;
+}

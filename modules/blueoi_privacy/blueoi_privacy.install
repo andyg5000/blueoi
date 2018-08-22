@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * @file
+ * Install file for BlueOI Privacy module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function blueoi_privacy_install() {
+  field_cache_clear();
+  $field = blueoi_privacy_opt_in_field_info();
+  if (!field_info_field($field['field_name'])) {
+    field_create_field($field);
+  }
+
+  $instance = blueoi_privacy_opt_in_field_instance();
+  if (!field_info_instance('user', $instance['field_name'], 'user')) {
+    field_create_instance($instance);
+  }
+}
+

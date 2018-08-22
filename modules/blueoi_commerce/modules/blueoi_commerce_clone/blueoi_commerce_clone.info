@@ -1,0 +1,4 @@
+name = BlueOI Clone
+description = Provides the ability to clone commerce entities
+core = 7.x
+package = Blue Oak Interactive

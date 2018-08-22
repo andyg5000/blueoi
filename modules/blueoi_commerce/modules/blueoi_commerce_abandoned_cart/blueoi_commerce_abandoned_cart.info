@@ -1,0 +1,9 @@
+name = BlueOI Commerce Abandoned Cart
+description = Provides abandoned cart notifications
+core = 7.x
+package = BlueOI
+
+dependencies[] = blueoi_commerce_order_message
+dependencies[] = blueoi_commerce_send_cart
+dependencies[] = blueoi_mail
+dependencies[] = rules_scheduler

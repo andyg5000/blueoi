@@ -1,0 +1,165 @@
+<?php
+
+/**
+ * @file
+ * Provides remarketing tags for Drupal Commerce
+ */
+
+/**
+ * Implements hook_page_build().
+ */
+function blueoi_commerce_remarketing_page_build(&$page) {
+  $params = blueoi_commerce_remarketing_get_tags();
+
+  if (!empty($params)) {
+    // Force the page type based on url arguments.
+    $params['ecomm_pagetype'] = blueoi_commerce_remarketing_get_page_type();
+
+    $remarketing = json_encode(
+      array(
+        'event' => 'fireRemarketingTag',
+        'google_tag_params' => $params,
+      )
+    );
+
+    drupal_add_js('window.dataLayer = window.dataLayer || []; window.dataLayer.push( ' . $remarketing . ')', array(
+      'type' => 'inline',
+      'scope' => 'header'));
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function blueoi_commerce_remarketing_form_commerce_cart_add_to_cart_form_alter(&$form, &$form_state) {
+  // Add re-marketing tags for this page.
+  if (!empty($form_state['default_product'])) {
+    $product_wrapper = entity_metadata_wrapper('commerce_product', $form_state['default_product']);
+    $values = array(
+      'sku' => $product_wrapper->sku->value(),
+      'value' => commerce_currency_amount_to_decimal($product_wrapper->commerce_price->amount->value(), $product_wrapper->commerce_price->currency_code->value())
+    );
+    blueoi_commerce_remarketing_set_tag($values);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ * @param $form
+ * @param $form_state
+ */
+function blueoi_commerce_remarketing_form_views_form_commerce_cart_form_default_alter(&$form, &$form_state) {
+  global $user;
+  $order = commerce_cart_order_load($user->uid);
+  if (!empty($order->order_id)) {
+    blueoi_commerce_remarketing_tags_from_order($order);
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function blueoi_commerce_remarketing_form_alter(&$form, &$form_state, $form_id) {
+  if (stripos($form_id, 'commerce_checkout_form') === 0 && !empty($form_state['order'])) {
+    blueoi_commerce_remarketing_tags_from_order($form_state['order']);
+  }
+}
+
+
+/**
+ * Create remarketing tags from an order.
+ * @param $order
+ */
+function blueoi_commerce_remarketing_tags_from_order($order) {
+  // Make sure the order has line items.
+  if (!empty($order->commerce_line_items)) {
+
+    $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+
+    // Loop over the product line items and grab the
+    // remarketing values.
+    foreach ($order_wrapper->commerce_line_items as $line_item_wrapper) {
+
+      if (in_array($line_item_wrapper->value()->type, array_keys(commerce_product_line_item_types()))) {
+
+        try {
+          blueoi_commerce_remarketing_set_tag(array(
+            'sku' => $line_item_wrapper->commerce_product->sku->value(),
+            'value' => commerce_currency_amount_to_decimal($line_item_wrapper->commerce_total->amount->value(), $line_item_wrapper->commerce_total->currency_code->value()),
+          ));
+        }
+        catch (Exception $ex) {
+          // Skip this line item if it's not a product line item
+          // or we're unable to load the required values.
+        }
+      }
+    }
+  }
+}
+
+
+
+/**
+ * Gets dynamic remarketing values.
+ *
+ * @return array
+ */
+function blueoi_commerce_remarketing_get_tags() {
+  $data = &drupal_static('blueoi_commerce_remarketing_tags', array());
+
+  return array(
+    'ecomm_prodid' => !empty($data['skus']) ? array_values($data['skus']) : '',
+    'ecomm_pagetype' => !empty($data['page_type']) ? $data['page_type'] : '',
+    'ecomm_totalvalue' => !empty($data['value']) ? $data['value'] : 0,
+  );
+}
+
+/**
+ * Sets the dynamic remarketing data for a page.
+ * @param array $values
+ */
+function blueoi_commerce_remarketing_set_tag($values = array()) {
+  $data = &drupal_static('blueoi_commerce_remarketing_tags', array());
+
+  // Handle adding product data to the remarketing
+  // tags.
+  if (!empty($values['sku']) && !empty($values['value'])) {
+    // Increase the value if the sku hasn't been added yet.
+    if (!in_array($data['skus'], $values['sku'])) {
+      $data['value'] += $values['value'];
+    }
+
+    // Append the sku to the data array.
+    $data['skus'][$values['sku']] = $values['sku'];
+  }
+}
+
+/**
+ * Determines the remarketing page type from the URL.
+ *
+ * @return string
+ */
+function blueoi_commerce_remarketing_get_page_type() {
+  // Allow other module to define the page type first.
+  $page_type = '';
+  drupal_alter('blueoi_commerce_remarketing_get_page_type', $page_type);
+  if (!empty($page_type)) {
+    return $page_type;
+  }
+
+  if (drupal_is_front_page()) {
+    return 'home';
+  }
+
+  if (arg(0) == 'node') {
+    return 'product';
+  }
+
+  if (arg(0) == 'cart' || (arg(0) == 'checkout' && arg(2) != 'complete')) {
+    return 'cart';
+  }
+
+  if (arg(0) == 'checkout' && arg(2) == 'complete') {
+    return 'purchase';
+  }
+}

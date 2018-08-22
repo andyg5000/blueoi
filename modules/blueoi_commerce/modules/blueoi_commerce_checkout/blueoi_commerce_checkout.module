@@ -1,0 +1,119 @@
+<?php
+
+/**
+ * @file
+ * Provides improvments to commerce checkout.
+ */
+
+
+/**
+ * Implements hook_cron().
+ */
+function blueoi_commerce_checkout_cron() {
+  global $user;
+  $cron_user = clone $user;
+  blueoi_commerce_checkout_update_anonymous_orders();
+  $user = $cron_user;
+}
+
+/**
+ * Cron routine to update anonymous users.
+ */
+function blueoi_commerce_checkout_update_anonymous_orders() {
+  $statuses = array('completed');
+  foreach (commerce_order_statuses(array('state' => 'pending')) as $status) {
+    $statuses[] = $status['name'];
+  }
+
+  $query = new EntityFieldQuery();
+  $results = $query->entityCondition('entity_type', 'commerce_order')
+    ->propertyCondition('uid', 0)
+    ->propertyCondition('created', strtotime('-15 minutes'), '<')
+    ->propertyCondition('status', $statuses, 'IN')
+    ->execute();
+
+  // If there are any anonymous orders, pass them to the
+  // submit handler for checkout_complete_registration.
+  if (!empty($results['commerce_order'])) {
+    foreach ($results['commerce_order'] as $result) {
+      $order = commerce_order_load($result->order_id);
+
+      // Attempt to associate the order with an existing user.
+      $account = user_load_by_mail($order->mail);
+      if (!empty($account)) {
+        $order->uid = $account->uid;
+        commerce_order_save($order);
+        continue;
+      }
+
+      // Create a new account by invoking commerce checkout
+      // complete registration.
+      $form_state = array();
+      $form_state['order'] = $order;
+      drupal_form_submit('commerce_checkout_complete_registration_confirmation_pane_checkout_form_submit', $form_state);
+    }
+  }
+}
+
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * If commerce_checkout_complete_registration is enabled, this alter will hide
+ * form fields that don't apply to the user based on their account.
+ *
+ * New users will see the set password form.
+ *
+ * Logged in users will see the default commerce checkout complete message.
+ *
+ * Returning unauthenticated users will see links to login or reset their pass.
+ */
+function blueoi_commerce_checkout_form_commerce_checkout_form_complete_alter(&$form, &$form_state) {
+  // If commerce_checkout_complete_registration presents a password form
+  // we know that the this is a new user account that will be created
+  // during checkout.
+  if (!empty($form['commerce_checkout_complete_registration']['pass'])) {
+    // Hide the generic message.
+    $form['checkout_completion_message']['#access'] = FALSE;
+
+    // Update the registration form so that it's displayed logically.
+    $form['commerce_checkout_complete_registration']['#title'] = t('Thank you for your order!');
+    $form['commerce_checkout_complete_registration']['confirmation_text']['#weight'] = 0;
+    $form['commerce_checkout_complete_registration']['pass']['#weight'] = 2;
+    $form['commerce_checkout_complete_registration']['submit']['#weight'] = 3;
+    $form['commerce_checkout_complete_registration']['submit']['#value'] = t('Set my password');
+    $form['commerce_checkout_complete_registration']['message'] = array(
+      '#markup' => '<div class="checkout-new-account"><p><strong>We have created an account for you so you can view and track your orders. Use the form below to set a password on your account. In the future, you can use your email address and this password to login.</strong></p></div>',
+      '#weight' => 1,
+    );
+
+    // Store that this is a new account in form state.
+    $form_state['blueoi_commerce_checkout']['account_status'] = 'new';
+  }
+  else {
+    // If the password form isn't available it either means that the user
+    // account with a matching email address already exists or the user is
+    // already logged in.
+    global $user;
+
+    // The user is not logged in, but already has an account.
+    if ($user->uid == 0) {
+
+      // Inform existing users of a conflict and give them links to access
+      // their account.
+      $form['blueoi_commerce_checkout_account_exists'] = array(
+        '#markup' => '<div class="checkout-account-exists"><p><strong>' . t('You have completed checkout with an email address that already exists in our store.') . '</strong></p><p>' . t('!login or !reset to check your order status and order history.', array('!login' => l(t('Login to your account'), 'user/login'), '!reset' => l(t('reset your password'), 'user/password'))) . '</p></div>',
+        '#weight' => 1,
+      );
+
+      // Store that there is already an existing account for this user.
+      $form_state['blueoi_commerce_checkout']['account_status'] = 'existing';
+    }
+
+    // The user is already logged in.
+    else {
+      // Store that the user is authenticated.
+      $form_state['blueoi_commerce_checkout']['account_status'] = 'authenticated';
+    }
+  }
+}
