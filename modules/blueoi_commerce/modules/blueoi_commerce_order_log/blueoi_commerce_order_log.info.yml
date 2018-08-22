@@ -1,0 +1,7 @@
+name: BlueOI Commerce Order Log
+type: module
+description: Provides logging UI for orders
+package: BlueOi
+core: 8.x
+dependencies:
+  - commerce:commerce_order

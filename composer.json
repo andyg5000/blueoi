@@ -1,0 +1,6 @@
+{
+  "name": "blueoakinteractive/blueoi",
+  "description": "Commonly used Drupal 8 utilities by Blue Oak Interactive",
+  "version": "1.0.0",
+  "type" : "drupal-custom-modules"
+}

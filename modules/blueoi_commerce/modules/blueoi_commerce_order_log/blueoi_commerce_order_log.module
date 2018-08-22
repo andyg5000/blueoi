@@ -1,0 +1,60 @@
+<?php
+
+/**
+ * @file
+ * Provides logging UI for orders.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function blueoi_commerce_order_log_form_commerce_order_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Alter the order edit form to add a log box.
+  $form['blueoi_commerce_order_log'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Save a log message'),
+    '#weight' => 100,
+    '#group' => 'advanced',
+    '#tree' => TRUE,
+  ];
+  $form['blueoi_commerce_order_log']['log'] = [
+    '#type' => 'textarea',
+    '#title' => t('Message'),
+    '#description' => t('Enter the log message to store with this update.'),
+  ];
+  $form['actions']['submit']['#submit'][] = 'blueoi_commerce_order_log_form_commerce_order_form_submit';
+}
+
+/**
+ * Submit callback for storing the log message.
+ *
+ * @param array $form
+ *   The form array.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The form state.
+ *
+ * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+ *   Plugin definition exception.
+ * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+ *   Plugin not found exception.
+ */
+function blueoi_commerce_order_log_form_commerce_order_form_submit(array $form, FormStateInterface $form_state) {
+  $values = $form_state->getValue('blueoi_commerce_order_log');
+
+  // If a log message was added, create a commerce_log entity.
+  if (!empty($values['log'])) {
+    /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+    $order = $form_state->getFormObject()->getEntity();
+    /** @var \Drupal\commerce_log\LogStorageInterface $log_storage */
+    $log_storage = \Drupal::entityTypeManager()->getStorage('commerce_log');
+    try {
+      $log_storage->generate($order, 'blueoi_commerce_order_log', ['comment' => $values['log']])
+        ->save();
+    }
+    catch (\Exception $ex) {
+      \Drupal::messenger()->addError(t('Unable to save the order log message due to @ex', ['@ex' => $ex->getMessage()]));
+    }
+  }
+}

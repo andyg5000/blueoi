@@ -1,0 +1,4 @@
+blueoi_commerce_order_log:
+  category: commerce_order
+  label: 'Order Log Message'
+  template: "<p><b>{{ 'Comment'|t }} :</b> {{ comment }}</p>"
