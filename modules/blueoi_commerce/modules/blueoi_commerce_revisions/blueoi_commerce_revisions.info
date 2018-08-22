@@ -1,6 +1,0 @@
-name = Bluename = BlueOI Commerce Revisions
-description = Enables the view of commerce product revisions
-core = 7.x
-package = Blue Oak Interactive
-
-files[] = includes/views/handlers/blueoi_commerce_revisions_views_filter_render_product_revision.inc

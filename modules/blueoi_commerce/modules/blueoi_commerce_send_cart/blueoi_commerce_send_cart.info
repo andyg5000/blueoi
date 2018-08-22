@@ -1,4 +1,0 @@
-name = BlueOI Commerce Send Cart
-description = Provides the ability to send a cart to another user
-core = 7.x
-package = BlueOI

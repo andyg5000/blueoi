@@ -1,4 +1,0 @@
-name = BlueOI Commerce
-description = Provides a base for all BlueOI Commerce utility modules
-core = 7.x
-package = Blue Oak Interactive

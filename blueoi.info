@@ -1,4 +1,0 @@
-name = BlueOI core
-description = Provides a base for all BlueOI utility modules
-core = 7.x
-package = Blue Oak Interactive

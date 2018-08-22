@@ -1,9 +1,0 @@
-name = BlueOI Email
-description = Custom module that defines mailsystem class in code.
-core = 7.x
-package = Blue Oak Interactive
-dependencies[] = mailsystem
-dependencies[] = smtp
-dependencies[] = mimemail
-
-files[] = includes/MimeMailSystem__SmtpMailSystem.mail.inc

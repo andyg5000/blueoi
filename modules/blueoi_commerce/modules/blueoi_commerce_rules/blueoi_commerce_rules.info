@@ -1,4 +1,0 @@
-name = BlueOI Commerce Rules
-description = Provides additional rules for Drupal Commerce
-core = 7.x
-package = BlueOI

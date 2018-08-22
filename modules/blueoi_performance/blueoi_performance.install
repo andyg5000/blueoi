@@ -1,9 +1,0 @@
-<?php
-
-/**
- * Implements hook_install().
- */
-function blueoi_performance_install() {
-  // Set variable defaults.
-  blueoi_performance_set_variables(_blueoi_performance_variable_defaults());
-}
